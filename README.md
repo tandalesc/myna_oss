@@ -1,5 +1,9 @@
 # Myna
 
+![The Myna slider in Stone and the Myna flip in Ember, open, running Myna](docs/phones.jpg)
+
+Try it in your browser: https://myna.shishirtandale.com
+
 Myna is open-source software for a keypad slider phone: a small kernel, drivers, a file system, a modem driver that
 speaks standard AT commands, and a phone UI in its own look (the "Pebble" design). It sends and receives text messages,
 keeps contacts, notes and settings, and runs a clock on a phone that sleeps between minutes. It runs on a simulator of
