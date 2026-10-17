@@ -1,0 +1,248 @@
+<!doctype html>
+<!-- admin.html: the relay's admin page (src/index.ts serves it at /admin). SPDX-License-Identifier: MIT -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Relay control</title>
+<style>
+  :root { --bg: #f4f2ee; --card: #fffdf9; --ink: #1d1c1a; --dim: #6d6a64; --line: #dcd8cf; --go: #1f7a4d; --stop: #b3261e; --warn: #9a6400; --accent: #2b4a8b; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161513; --card: #201f1c; --ink: #ece9e2; --dim: #9a968d; --line: #36342f; --go: #5fc08d; --stop: #f2726a; --warn: #e0a93a; --accent: #8fb0f0; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .01em; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--dim); margin: 0 0 10px; font-weight: 600; }
+  #when { color: var(--dim); font-size: 13px; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+  .grid section { margin-top: 0; }
+  .big { font-size: 34px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .sub { color: var(--dim); font-size: 13px; }
+  .state { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 13px; font-weight: 600; border: 1px solid currentColor; }
+  .on { color: var(--go); } .off { color: var(--stop); } .paused { color: var(--warn); }
+  button { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--dim); }
+  button.danger { border-color: var(--stop); color: var(--stop); font-weight: 600; }
+  button.safe { border-color: var(--go); color: var(--go); font-weight: 600; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input { font: inherit; padding: 6px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .limits { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; }
+  .limits label { display: flex; flex-direction: column; font-size: 13px; color: var(--dim); gap: 3px; }
+  .limits input { width: 100%; font-variant-numeric: tabular-nums; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  th { color: var(--dim); font-weight: 500; font-size: 12px; }
+  .scroll { overflow-x: auto; }
+  svg { display: block; width: 100%; height: 90px; }
+  .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  .gauges { display: grid; gap: 14px 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .gauge .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+  .gauge .num { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .gauge .bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 6px 0 4px; }
+  .gauge .bar i { display: block; height: 100%; background: var(--go); border-radius: 99px; }
+  .gauge.near .bar i { background: var(--warn); } .gauge.held .bar i { background: var(--stop); }
+  .gauge.held .sub { color: var(--stop); font-weight: 600; }
+  #msg { min-height: 1.4em; color: var(--warn); font-size: 13px; margin-top: 8px; }
+  #gate { max-width: 380px; margin: 14vh auto; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body data-mode="__MODE__">
+<main>
+  <section id="gate" hidden>
+    <h2>Relay control</h2>
+    <form id="gateForm" class="row"><input id="secret" type="password" placeholder="Admin secret" autocomplete="current-password" style="flex:1"><button>Open</button></form>
+  </section>
+
+  <div id="app" hidden>
+    <header><h1>Relay control</h1><span id="net" class="state">...</span><span id="when"></span></header>
+
+    <div class="grid">
+      <section><h2>Phones connected</h2><div class="big" id="phones">0</div><div class="sub" id="shards"></div></section>
+      <section><h2>Texts, last full minute</h2><div class="big" id="perMin">0</div><div class="sub" id="nowMin"></div></section>
+      <section><h2>Failures, last full minute</h2><div class="big" id="failMin">0</div><div class="sub" id="failWhy"></div></section>
+      <section><h2>Joins, last full minute</h2><div class="big" id="joinMin">0</div><div class="sub">counts reach this page up to <span id="lag">60</span> s late</div></section>
+    </div>
+
+    <section>
+      <h2>Ceilings of the whole network (they bound the bill; 0 = none)</h2>
+      <div class="gauges" id="gauges"></div>
+    </section>
+
+    <section>
+      <h2>Last hour: texts sent (bars) and failed (red)</h2>
+      <svg id="chart" viewBox="0 0 600 90" preserveAspectRatio="none" role="img" aria-label="Texts per minute over the last hour"></svg>
+    </section>
+
+    <section>
+      <h2>Switches</h2>
+      <div class="row">
+        <button id="kill" class="danger">Switch the network off</button>
+        <span class="sub">Off: every phone is disconnected and shows no service until it is switched on again.</span>
+      </div>
+      <div class="row">
+        <button id="pause">Pause new joins</button>
+        <span class="sub">Paused: connected phones keep working and may reconnect; new phones are turned away.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Limits (take effect at once)</h2>
+      <form id="limitsForm">
+        <div class="limits" id="limits"></div>
+        <div class="row"><button>Save the limits</button><span class="sub">Join attempts per address and minute are set in wrangler.jsonc, not here.</span></div>
+      </form>
+    </section>
+
+    <section>
+      <h2>A number</h2>
+      <form id="numForm" class="row">
+        <input id="num" class="mono" placeholder="12-digit number, or an identity key" style="flex:1" autocomplete="off">
+        <button>Look up</button><button type="button" id="banBtn" class="danger">Bar</button><button type="button" id="unbanBtn">Lift the bar</button>
+      </form>
+      <div id="numOut" class="sub mono" style="margin-top:8px"></div>
+      <div class="sub" style="margin-top:8px">Barred: <span id="bans" class="mono">none</span></div>
+    </section>
+
+    <section>
+      <h2>Numbers that ran into the rate limit, or sent much</h2>
+      <div class="scroll"><table><thead><tr><th>Number</th><th>Texts sent</th><th>Refused by the limit</th><th>Seen</th><th></th></tr></thead><tbody id="hot"></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Busiest parts of the network</h2>
+      <div class="scroll"><table><thead><tr><th>First digits</th><th>Phones</th><th>Last report</th></tr></thead><tbody id="busy"></tbody></table></div>
+    </section>
+    <div id="msg" role="status"></div>
+  </div>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const mode = document.body.dataset.mode;
+let secret = '', state = null, timer = null;
+try { secret = sessionStorage.getItem('relay-admin') || ''; } catch (e) { /* no storage */ }
+const NAMES = {
+  perMin: 'Texts per minute, one phone', burst: 'Burst (texts at once)', joinTokens: 'Texts right after joining', maxBody: 'Largest text (bytes)',
+  maxPending: 'Texts waiting for the far phone', pendSec: 'Wait for the far phone (s)', framesPerMin: 'Frames per minute, one phone',
+  maxConns: 'Phones per shard', joinSec: 'Time to join (s)', reportSec: 'Counts reach this page after (s)',
+  netPerMin: 'WHOLE NETWORK: texts per minute', maxPhones: 'WHOLE NETWORK: phones connected', dayMax: 'WHOLE NETWORK: texts per UTC day',
+};
+
+async function api(path, body) {
+  const headers = {};
+  if (mode === 'secret') headers.authorization = 'Bearer ' + secret;
+  if (body) headers['content-type'] = 'application/json';
+  const res = await fetch('/admin/api/' + path, { method: body ? 'POST' : 'GET', headers, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+  if (res.status === 403) { gate(true); throw new Error('not allowed'); }
+  const out = await res.json();
+  if (!res.ok) throw new Error(out.error || res.status);
+  return out;
+}
+function say(s) { $('msg').textContent = s || ''; }
+function gate(show) { $('gate').hidden = !show || mode !== 'secret'; $('app').hidden = show; if (show && mode !== 'secret') say('Not allowed.'); }
+function ago(ms) { const s = Math.max(0, Math.round((state.now - ms) / 1000)); return s < 90 ? s + ' s ago' : Math.round(s / 60) + ' min ago'; }
+function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.appendChild(td); return td; }
+
+function draw(s) {
+  state = s;
+  const c = s.cfg, net = $('net');
+  net.textContent = c.kill ? 'OFF' : c.pause ? 'Joins paused' : 'On';
+  net.className = 'state ' + (c.kill ? 'off' : c.pause ? 'paused' : 'on');
+  $('kill').textContent = c.kill ? 'Switch the network on' : 'Switch the network off';
+  $('kill').className = c.kill ? 'safe' : 'danger';
+  $('pause').textContent = c.pause ? 'Take new joins again' : 'Pause new joins';
+  $('when').textContent = new Date(s.now).toLocaleTimeString() + (s.pushing ? ' · telling ' + s.pushing + ' shards' : '');
+  $('phones').textContent = s.phones;
+  $('shards').textContent = 'on ' + s.shards + ' of 900 shards';
+  $('perMin').textContent = s.lastMinute.sent;
+  $('nowMin').textContent = 'this minute so far: ' + s.thisMinute.sent;
+  $('failMin').textContent = s.lastMinute.failed;
+  $('failWhy').textContent = Object.entries(s.lastMinute.fail).map(([k, v]) => k + ' ' + v).join(', ') || 'none';
+  $('joinMin').textContent = s.lastMinute.joins;
+  $('lag').textContent = c.limits.reportSec;
+  $('bans').textContent = c.bans.length ? c.bans.join(', ') : 'none';
+  const box = $('limits');
+  if (!box.children.length || !box.contains(document.activeElement)) {
+    box.textContent = '';
+    for (const k of Object.keys(c.limits)) {
+      const l = document.createElement('label'), i = document.createElement('input');
+      l.textContent = NAMES[k] || k; i.type = 'number'; i.min = 0; i.name = k; i.value = c.limits[k];
+      l.appendChild(i); box.appendChild(l);
+    }
+  }
+  const hot = $('hot'); hot.textContent = '';
+  for (const h of s.hot) {
+    const tr = document.createElement('tr');
+    cell(tr, h.n, 'mono'); cell(tr, h.sent); cell(tr, h.limited); cell(tr, ago(h.at));
+    const b = document.createElement('button'); b.textContent = c.bans.includes(h.n) ? 'Lift the bar' : 'Bar';
+    b.onclick = () => ban(h.n, !c.bans.includes(h.n));
+    cell(tr, '').appendChild(b); hot.appendChild(tr);
+  }
+  if (!s.hot.length) cell(hot.appendChild(document.createElement('tr')), 'none').colSpan = 5;
+  const busy = $('busy'); busy.textContent = '';
+  for (const r of s.busiest) { const tr = document.createElement('tr'); cell(tr, r.idx, 'mono'); cell(tr, r.conns); cell(tr, ago(r.at)); busy.appendChild(tr); }
+  if (!s.busiest.length) cell(busy.appendChild(document.createElement('tr')), 'none').colSpan = 3;
+  const g = s.gauges, gs = $('gauges'); gs.textContent = '';
+  for (const [name, val, max, held, on, off] of [
+    ['Texts in the last minute', g.rate, g.netPerMin, g.hold.texts, 'Over the ceiling: texts are refused until the rate falls', 'Above it texts are refused; nobody is disconnected'],
+    ['Phones connected', g.phones, g.maxPhones, g.hold.joins, 'At the ceiling: new phones are turned away', 'At it new phones are turned away'],
+    ['Texts today (UTC)', g.day, g.dayMax, g.hold.day, 'Used up: texts are refused until midnight UTC', 'When used up texts are refused until midnight UTC']]) {
+    const d = document.createElement('div'), frac = max > 0 ? Math.min(1, val / max) : 0;
+    d.className = 'gauge' + (held ? ' held' : frac >= 0.8 ? ' near' : '');
+    const top = document.createElement('div'); top.className = 'top';
+    const a = document.createElement('span'); a.textContent = name;
+    const b = document.createElement('span'); b.className = 'num'; b.textContent = val.toLocaleString() + ' / ' + (max > 0 ? max.toLocaleString() : 'no ceiling');
+    top.append(a, b);
+    const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('i'); fill.style.width = (frac * 100).toFixed(1) + '%'; bar.appendChild(fill);
+    const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = held ? on : off;
+    d.append(top, bar, sub); gs.appendChild(d);
+  }
+  chart(s);
+}
+
+function chart(s) {
+  const svg = $('chart'), NS = 'http://www.w3.org/2000/svg', cur = Math.floor(s.now / 60000);
+  svg.textContent = '';
+  const by = new Map(s.minutes.map(m => [m.m, m]));
+  let top = 1;
+  for (const m of s.minutes) top = Math.max(top, m.sent + m.failed);
+  for (let i = 0; i < 60; i++) {
+    const m = by.get(cur - 59 + i); if (!m) continue;
+    const hs = m.sent / top * 84, hf = m.failed / top * 84;
+    const add = (y, h, fill) => { const r = document.createElementNS(NS, 'rect'); r.setAttribute('x', i * 10 + 1); r.setAttribute('width', 8); r.setAttribute('y', y); r.setAttribute('height', Math.max(h, 0)); r.setAttribute('fill', fill); svg.appendChild(r); };
+    add(88 - hs, hs, 'var(--accent)'); add(88 - hs - hf, hf, 'var(--stop)');
+  }
+  const base = document.createElementNS(NS, 'rect'); base.setAttribute('x', 0); base.setAttribute('y', 88); base.setAttribute('width', 600); base.setAttribute('height', 1); base.setAttribute('fill', 'var(--line)'); svg.appendChild(base);
+}
+
+async function refresh() { try { draw(await api('state')); gate(false); } catch (e) { if (e.message !== 'not allowed') say('No answer from the relay: ' + e.message); } }
+async function change(path, body, done) { try { const s = await api(path, body); draw(s); say(done); } catch (e) { say('Not done: ' + e.message); } }
+function target() { const v = $('num').value.replace(/\s/g, ''); return /^[1-9]\d{11}$/.test(v) ? { number: v } : { key: v }; }
+function ban(n, on) { if (confirm((on ? 'Bar ' : 'Lift the bar on ') + n + '?')) change('ban', { number: n, on }, (on ? 'Barred ' : 'No longer barred: ') + n); }
+
+$('gateForm').onsubmit = e => { e.preventDefault(); secret = $('secret').value; try { sessionStorage.setItem('relay-admin', secret); } catch (x) { /* fine */ } refresh(); };
+$('kill').onclick = () => { const on = !state.cfg.kill; if (confirm(on ? 'Switch the network OFF? Every phone is disconnected.' : 'Switch the network on again?')) change('set', { kill: on }, on ? 'The network is off.' : 'The network is on.'); };
+$('pause').onclick = () => change('set', { pause: !state.cfg.pause }, state.cfg.pause ? 'New joins are taken again.' : 'New joins are paused.');
+$('limitsForm').onsubmit = e => { e.preventDefault(); const limits = {}; for (const i of $('limits').querySelectorAll('input')) limits[i.name] = Number(i.value); document.activeElement.blur(); change('set', { limits }, 'Limits saved.'); };
+$('numForm').onsubmit = async e => {
+  e.preventDefault();
+  const n = $('num').value.replace(/\s/g, '');
+  if (!/^[1-9]\d{11}$/.test(n)) return void ($('numOut').textContent = 'Look-up takes a 12-digit number.');
+  try {
+    const r = await api('number?n=' + n);
+    $('numOut').textContent = r.connected ? `${n}: connected since ${new Date(r.since).toLocaleString()}; sent ${r.sent}, failed ${r.failed}, refused by the limit ${r.limited}, waiting ${r.waiting}; key ${r.key}` : `${n}: not connected${r.banned ? ' (barred)' : ''}`;
+  } catch (x) { $('numOut').textContent = String(x.message); }
+};
+$('banBtn').onclick = () => { const t = target(); if (confirm('Bar ' + (t.number || 'the number of this key') + '?')) change('ban', { ...t, on: true }, 'Barred.'); };
+$('unbanBtn').onclick = () => change('ban', { ...target(), on: false }, 'The bar is lifted.');
+
+if (mode === 'secret' && !secret) gate(true); else refresh();
+timer = setInterval(() => { if (!$('app').hidden && !document.hidden) refresh(); }, 5000);
+</script>
+</body>
+</html>

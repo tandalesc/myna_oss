@@ -1,0 +1,223 @@
+{
+ "about": "Shared test vectors of the relay (PROTOCOL.md, TWIN.md). TEST KEYS, published on purpose: never use them for a phone. ECDSA signatures are random: check them, do not compare them.",
+ "version": 1,
+ "number_rule": "SHA-256(raw public key, 65 bytes) -> first 8 bytes as a big-endian integer = v; number = 10^11 + (v modulo 9 * 10^11): 12 digits, the first never 0; shard = the first 3 digits (100 to 999)",
+ "identities": [
+  {
+   "number": "661871364214",
+   "shard": "661",
+   "identity_public": "043171d6f0130b5153db0942b05eacf837500848863f56239ff687504ced3711ed0c3402e8f0cf5156136c2c781507a9431a5ce08c33a71cfaa28be7255160091d",
+   "identity_sha256": "4e785055dcd9d87695fa3d7229fd5a5d2905ad073698a059d6dc8b86e7f89d2e",
+   "identity_private_jwk": {
+    "key_ops": [
+     "sign"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "MXHW8BMLUVPbCUKwXqz4N1AISIY_ViOf9odQTO03Ee0",
+    "y": "DDQC6PDPUVYTbCx4FQepQxpc4Iwzpxz6oovnJVFgCR0",
+    "crv": "P-256",
+    "d": "9gkwrd0QI1fStNMF0pUIVTRbCg44byu_kZ0J8npDXoc"
+   },
+   "encryption_public": "041fb1011228447e5f3b5af6186edaf40ce42c14ae3d4de878edafa1d3fc13adcfc6b4f2877f91f16290639be00129fea4251c0cec886bd4f468ee58810911e875",
+   "encryption_private_jwk": {
+    "key_ops": [
+     "deriveBits"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "H7EBEihEfl87WvYYbtr0DOQsFK49Teh47a-h0_wTrc8",
+    "y": "xrTyh3-R8WKQY5vgASn-pCUcDOyIa9T0aO5YgQkR6HU",
+    "crv": "P-256",
+    "d": "lVP3KrwaYfTWuWKq2KFC1pSZCQx6MumBBx9Yp_10h6s"
+   },
+   "encryption_signature": "55e160f077609c4a1c39b5c0569c844ce0f4d66b70a3b82f2d51b713b14d7f8dc148212f195fdba365a3dc321015b32efaeced74d5a1451ac4d770dff94c9587",
+   "encryption_signed_text": "myna-relay/enc/1\n661871364214\nBB+xARIoRH5fO1r2GG7a9AzkLBSuPU3oeO2vodP8E63PxrTyh3+R8WKQY5vgASn+pCUcDOyIa9T0aO5YgQkR6HU="
+  },
+  {
+   "number": "929061073437",
+   "shard": "929",
+   "identity_public": "042bb29f77809aa0b6b30a06fd7fed2899df7fdab9c33e435510e59546043dca34b01b9255deb534ee7c4a54d5853e651d019de0bb4e592ecf4e95a040d10d31c5",
+   "identity_sha256": "c2d3d8e21a66121ddda02667d91ab73321b322de52044eb4d4dd89333eb885bf",
+   "identity_private_jwk": {
+    "key_ops": [
+     "sign"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "K7Kfd4CaoLazCgb9f-0omd9_2rnDPkNVEOWVRgQ9yjQ",
+    "y": "sBuSVd61NO58SlTVhT5lHQGd4LtOWS7PTpWgQNENMcU",
+    "crv": "P-256",
+    "d": "JqxDrLiDF5cWetgzFi6LuFT9FiCplrUyx9tzJT4WI-Y"
+   },
+   "encryption_public": "045565bc261c0761892de05a1cd4409a8182d7c3ec2b9bb5a799c3be2c99a76a256dd8f5c2bdeb9257c576ca5b1d92dd5413447fcfba19dda2e08190e6b7a00815",
+   "encryption_private_jwk": {
+    "key_ops": [
+     "deriveBits"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "VWW8JhwHYYkt4Foc1ECagYLXw-wrm7WnmcO-LJmnaiU",
+    "y": "bdj1wr3rklfFdspbHZLdVBNEf8-6Gd2i4IGQ5regCBU",
+    "crv": "P-256",
+    "d": "CxtJlTs_yJd-1QV7X5xV5_dwABjHx2MlccKajXRbmhQ"
+   },
+   "encryption_signature": "59c02ce9ff3083a045a0c83ea667301acc04f2892e22856b28b202bbd5da0a9d4d14f23e0e9e5fa53effe82066edfc344d81937c72c64604addf93afadd908e9",
+   "encryption_signed_text": "myna-relay/enc/1\n929061073437\nBFVlvCYcB2GJLeBaHNRAmoGC18PsK5u1p5nDviyZp2olbdj1wr3rklfFdspbHZLdVBNEf8+6Gd2i4IGQ5regCBU="
+  },
+  {
+   "number": "580789777687",
+   "shard": "580",
+   "identity_public": "04d74fbfee46d0e08217a203781b0ff37a0486d2a5bc0bd0e9a2edefa1982f8242f22a053b64d3a437a944551d2fd6fb9403309865f32aa521ca5634243a8e04f4",
+   "identity_sha256": "46806a6971f2f517c80f419b46b994fe9ae009bab243781cebd6f1671b81ae0f",
+   "identity_private_jwk": {
+    "key_ops": [
+     "sign"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "10-_7kbQ4IIXogN4Gw_zegSG0qW8C9Dpou3voZgvgkI",
+    "y": "8ioFO2TTpDepRFUdL9b7lAMwmGXzKqUhylY0JDqOBPQ",
+    "crv": "P-256",
+    "d": "aZCfojpKXfWyDD-QA3QNZerdULs73u8iUi3IlRdPzRE"
+   },
+   "encryption_public": "04613412f761da2ff968d60c85d8de5caa15dc4dd962a40f20de873eab35fbff280b1f250b96a1200f350fe964450a6d30f52fce871bf20e41f58255404cb73376",
+   "encryption_private_jwk": {
+    "key_ops": [
+     "deriveBits"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "YTQS92HaL_lo1gyF2N5cqhXcTdlipA8g3oc-qzX7_yg",
+    "y": "Cx8lC5ahIA81D-lkRQptMPUvzocb8g5B9YJVQEy3M3Y",
+    "crv": "P-256",
+    "d": "nbaPFzYaFUKL_wNQGDL56Rv6qL9WKwvDD9icYnR737o"
+   },
+   "encryption_signature": "21152a09670ca039017ddbfda4a47527f91e75093dcf53e508ef92ea1ba554c9887f1e88aad06398895423f8be28141239a9ca206917d651e2eca624ddb28861",
+   "encryption_signed_text": "myna-relay/enc/1\n580789777687\nBGE0Evdh2i/5aNYMhdjeXKoV3E3ZYqQPIN6HPqs1+/8oCx8lC5ahIA81D+lkRQptMPUvzocb8g5B9YJVQEy3M3Y="
+  },
+  {
+   "number": "179160578250",
+   "shard": "179",
+   "identity_public": "04c2ce023e302d780de645feb7d0c77591920bd40aa8acf6446cb3e5bc7a828ae3ddae4335ff83cbcad3ee73674ca08673e9329143bac54e6dc319a5cb1b8b9ca9",
+   "identity_sha256": "635d0b74de2d48cabfe2ddd3feac047784064ec95b8adc61111b5848701d4792",
+   "identity_private_jwk": {
+    "key_ops": [
+     "sign"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "ws4CPjAteA3mRf630Md1kZIL1AqorPZEbLPlvHqCiuM",
+    "y": "3a5DNf-Dy8rT7nNnTKCGc-kykUO6xU5twxmlyxuLnKk",
+    "crv": "P-256",
+    "d": "ajGDnx23BNmwpgEOl8CGMYVNHrfKYTjLaTdHKZuXARw"
+   },
+   "encryption_public": "04cb3e3f41987b31133e136151d6d5739a3ce566bec1cbbdfbde8cdde91f7b02f54a0f0a5d9a98550b0ecf0083b63fa67e36c9f3faea738d8f2c64b10d767bc451",
+   "encryption_private_jwk": {
+    "key_ops": [
+     "deriveBits"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "yz4_QZh7MRM-E2FR1tVzmjzlZr7By7373ozd6R97AvU",
+    "y": "Sg8KXZqYVQsOzwCDtj-mfjbJ8_rqc42PLGSxDXZ7xFE",
+    "crv": "P-256",
+    "d": "hvdwnQowzV_taLEDFvzNxXPkFOjOc-jiJ5pvDsNk5ko"
+   },
+   "encryption_signature": "202b92e92f363618c6d9e2378d4cdaae667c568590d42596368e39f41372e4cc3a8db5975c4cb3fcf7117a54610082cf24e3543ec6fe7b4addef7ef6cdfc1b9e",
+   "encryption_signed_text": "myna-relay/enc/1\n179160578250\nBMs+P0GYezETPhNhUdbVc5o85Wa+wcu9+96M3ekfewL1Sg8KXZqYVQsOzwCDtj+mfjbJ8/rqc42PLGSxDXZ7xFE="
+  }
+ ],
+ "routing": [
+  {
+   "from": "661871364214",
+   "to": "929061073437",
+   "to_connected": true,
+   "same_shard": false,
+   "forward_to_shard": "929",
+   "result": "deliver, then the receiver's acknowledgement"
+  },
+  {
+   "from": "661871364214",
+   "to": "580789777687",
+   "to_connected": false,
+   "result": {
+    "ok": false,
+    "code": "offline",
+    "cause": 27
+   }
+  },
+  {
+   "from": "661871364214",
+   "to": "5551234",
+   "result": {
+    "ok": false,
+    "code": "unknown",
+    "cause": 1
+   }
+  },
+  {
+   "from": "661871364214",
+   "to": "3246",
+   "result": "service echo: sent ok, then the same payload delivered from 3246"
+  },
+  {
+   "from": "661871364214",
+   "to": "252833",
+   "result": {
+    "ok": false,
+    "code": "unknown",
+    "cause": 1
+   },
+   "note": "the Claude number is a disabled stub"
+  }
+ ],
+ "causes": {
+  "unknown": 1,
+  "banned": 8,
+  "refused": 21,
+  "offline": 27,
+  "off": 38,
+  "error": 38,
+  "timeout": 41,
+  "rate": 42,
+  "busy": 42,
+  "too_big": 111,
+  "bad_frame": 111,
+  "unsupported": 69
+ },
+ "join": {
+  "relay": "relay.example",
+  "number": "661871364214",
+  "nonce": "AAECAwQFBgcICQoLDA0ODw==",
+  "signed_text": "myna-relay/join/1\nrelay.example\n661871364214\nAAECAwQFBgcICQoLDA0ODw==",
+  "signature": "1bb3115e072ffdc62f28f07195d09313793d29c3be8b2968c23b963687d327031a368039a749ccd8032e52afe77a8c5fb58c41991f14873ab92359c1536a06eb"
+ },
+ "payload": {
+  "sms_submit": "11010c812909167043730000ff05c8329bfd06",
+  "plain_payload": "0111010c812909167043730000ff05c8329bfd06",
+  "note": "payload = 01 (kind: SMS-SUBMIT) + the unit as the phone built it"
+ },
+ "deliver": {
+  "from": "661871364214",
+  "receiver_clock": 1224504100,
+  "origin_address_field": "0c81668117632441",
+  "time_stamp": "80010221100400",
+  "sms_deliver": "040c8166811763244100008001022110040005c8329bfd06"
+ },
+ "echo_deliver": {
+  "from": "3246",
+  "receiver_clock": 1224504100,
+  "sms_deliver": "040481236400008001022110040005c8329bfd06"
+ },
+ "envelope": {
+  "from": "661871364214",
+  "to": "929061073437",
+  "info_text": "myna-relay/e2e/1\n661871364214\n929061073437",
+  "salt": "000102030405060708090a0b0c0d0e0f",
+  "nonce": "a0a1a2a3a4a5a6a7a8a9aaab",
+  "plain_payload": "0111010c812909167043730000ff05c8329bfd06",
+  "body": "01000102030405060708090a0b0c0d0e0fa0a1a2a3a4a5a6a7a8a9aaabfe8b77e2ae6466000a22ad6416c68d4adac6da70d843aa92ef6cfcfe4e13045dcbaa7f8a",
+  "layout": "01 | salt 16 | nonce 12 | AES-256-GCM ciphertext and tag; key = HKDF-SHA256(ECDH P-256 shared x, salt, info_text); additional data = info_text"
+ }
+}

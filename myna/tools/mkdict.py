@@ -1,0 +1,152 @@
+# SPDX-License-Identifier: MIT
+"""mkdict: the built-in dictionary of predictive text. Turns the ranked word list (myna/assets/words/en.txt, one word
+per line, the most frequent first) into an index by key sequence as C source (src/lib/dict.h reads it).
+
+    python3 -I myna/tools/mkdict.py WORDLIST OUTDIR
+
+writes OUTDIR/dict_data.c and OUTDIR/dict_data.h. Standard library only. Run by myna/firmware/Makefile.
+
+A word's key sequence is the keys that type it once each: 2 abc, 3 def, 4 ghi, 5 jkl, 6 mno, 7 pqrs, 8 tuv, 9 wxyz,
+and 1 for an apostrophe ("I'm" is 416). The words are sorted by key sequence (as strings, so a sequence comes just
+before every longer one that starts with it), and words with the same sequence by frequency. Then:
+
+  entry    byte 0: shared << 4 | suffix length (shared: letters in common with the word before it in the same block,
+                   0-15; suffix length 0-14, or 15 and the length in the next byte); byte 1: the frequency class,
+                   round(16 log2(rank + 1)), 0 for the most frequent word and about 240 for the 32,000th; then the
+                   suffix's letters (ASCII, capitals kept, ' for the apostrophe)
+  block    DICT_BLOCK entries; the first has shared = 0, so it holds its whole word
+  blocks   dict_block_at[]: the offset of each block in dict_bytes[]
+  short    the answers of dict_prefix() for one and two keys, made here (a scan of the index would read up to a
+           quarter of it): dict_short_at[] and dict_short[]
+
+Every word is in the list once, with its own case; a lookup binary-searches the blocks by the key sequence of their
+first word, then reads entries one after the other.
+"""
+import math
+import os
+import sys
+
+BLOCK = 16
+KEY = {}
+for k, letters in (('2', 'abc'), ('3', 'def'), ('4', 'ghi'), ('5', 'jkl'), ('6', 'mno'), ('7', 'pqrs'), ('8', 'tuv'),
+                   ('9', 'wxyz')):
+    for c in letters:
+        KEY[c] = KEY[c.upper()] = k
+KEY["'"] = '1'
+
+
+def keys_of(w):
+    return ''.join(KEY[c] for c in w)
+
+
+def beginnings(entries, keys):
+    """the distinct beginnings of the words longer than keys whose sequence starts with keys, best first: as
+    dict_prefix() finds them in the index (merged without regard to case, the case of the best word, ties: the one
+    met first)"""
+    k, slots = len(keys), []           # [best class, beginning, lower-case beginning]
+    for w, cls, ks in entries:
+        if len(w) <= k or not ks.startswith(keys):
+            continue
+        for s in slots:
+            if s[2] == w[:k].lower():
+                break
+        else:
+            s = [256, w[:k], w[:k].lower()]
+            slots.append(s)
+        if cls < s[0]:
+            s[0], s[1] = cls, w[:k]
+    return [s[1] for s in sorted(slots, key=lambda s: (s[0], slots.index(s)))]
+
+
+def short_table(entries):
+    """the beginnings of every sequence of one and two keys (what a scan of the index would find): dict_short_at[]
+    (9 for one key, then 81 for two, '1' to '9') -> count, then the beginnings' letters"""
+    at, data = [], bytearray()
+    seqs = [a for a in '123456789'] + [a + b for a in '123456789' for b in '123456789']
+    for keys in seqs:
+        b = beginnings(entries, keys)
+        at.append(len(data))
+        data.append(len(b))
+        for w in b:
+            data += w.encode('ascii')
+    return at, bytes(data)
+
+
+def build(words):
+    """(bytes, block offsets, word count, longest word, the short table: offsets and bytes)"""
+    seen, ranked = set(), []
+    for w in words:
+        if w in seen or not w or any(c not in KEY for c in w):
+            continue
+        seen.add(w)
+        ranked.append(w)
+    order = sorted(range(len(ranked)), key=lambda i: (keys_of(ranked[i]), i))
+    data, blocks, prev, entries = bytearray(), [], '', []
+    for n, i in enumerate(order):
+        w = ranked[i]
+        if n % BLOCK == 0:
+            blocks.append(len(data))
+            prev = ''
+        shared = 0
+        while shared < min(len(w), len(prev), 15) and w[shared] == prev[shared]:
+            shared += 1
+        suffix = w[shared:].encode('ascii')
+        cls = min(255, int(round(16 * math.log2(i + 1))))
+        if len(suffix) < 15:
+            data += bytes([shared << 4 | len(suffix), cls])
+        else:
+            data += bytes([shared << 4 | 15, cls, len(suffix)])
+        data += suffix
+        prev = w
+        entries.append((w, cls, keys_of(w)))
+    return bytes(data), blocks, len(ranked), max(len(w) for w in ranked), short_table(entries)
+
+
+def main():
+    if len(sys.argv) != 3:
+        sys.exit(__doc__)
+    src, outdir = sys.argv[1:]
+    with open(src, encoding='ascii') as f:
+        words = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+    data, blocks, count, longest, (short_at, short) = build(words)
+    os.makedirs(outdir, exist_ok=True)
+    lines = ['/* SPDX-License-Identifier: MIT */',
+             '/* Generated by myna/tools/mkdict.py from %s: do not edit. The words: 12dicts (public domain, AGID'
+             % os.path.basename(src), ' * notice: myna/assets/words/LICENSE-12dicts.txt). */',
+             '#include <stdint.h>', '', '#include "dict_data.h"', '',
+             'const uint32_t dict_count = %d;' % count,
+             'const uint32_t dict_block_count = %d;' % len(blocks), '',
+             'const uint32_t dict_block_at[%d] = {' % len(blocks)]
+    for i in range(0, len(blocks), 8):
+        lines.append('    ' + ', '.join('%d' % b for b in blocks[i:i + 8]) + ',')
+    lines += ['};', '', 'const uint8_t dict_bytes[%d] = {' % len(data)]
+    for i in range(0, len(data), 20):
+        lines.append('    ' + ','.join('%d' % b for b in data[i:i + 20]) + ',')
+    lines += ['};', '', 'const uint16_t dict_short_at[90] = {']
+    for i in range(0, 90, 10):
+        lines.append('    ' + ', '.join('%d' % b for b in short_at[i:i + 10]) + ',')
+    lines += ['};', '', 'const uint8_t dict_short[%d] = {' % len(short)]
+    for i in range(0, len(short), 20):
+        lines.append('    ' + ','.join('%d' % b for b in short[i:i + 20]) + ',')
+    lines += ['};', '']
+    tmp = os.path.join(outdir, 'dict_data.c.tmp')
+    with open(tmp, 'w') as f:
+        f.write('\n'.join(lines))
+    os.replace(tmp, os.path.join(outdir, 'dict_data.c'))
+    with open(os.path.join(outdir, 'dict_data.h'), 'w') as f:
+        f.write('/* SPDX-License-Identifier: MIT */\n'
+                '/* Generated by myna/tools/mkdict.py: the predictive-text index (format: mkdict.py). */\n'
+                '#ifndef MYNA_GEN_DICT_DATA_H\n#define MYNA_GEN_DICT_DATA_H\n\n#include <stdint.h>\n\n'
+                '#define DICT_BLOCK   %d\n#define DICT_LONGEST %d     /* letters of the longest word */\n\n'
+                'extern const uint32_t dict_count, dict_block_count;\n'
+                'extern const uint32_t dict_block_at[];\nextern const uint8_t dict_bytes[];\n'
+                '/* the beginnings of one and two keys, best first (9 sequences of one key, then 81 of two): at each\n'
+                '   offset a count, then that many beginnings of the sequence\'s length */\n'
+                'extern const uint16_t dict_short_at[90];\nextern const uint8_t dict_short[];\n\n#endif\n'
+                % (BLOCK, longest))
+    print('mkdict: %d words, %d blocks, %d bytes of entries + %d of block offsets + %d of short beginnings'
+          % (count, len(blocks), len(data), 4 * len(blocks), 180 + len(short)))
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: MIT
+# Words the source list does not have, the project's own: common English contractions and two words of texting, each
+# with the frequency band it is taken to be in (the bands of 12dicts' 2+2+3frq: 1 the most frequent, each band about
+# half as frequent as the one before). Read by myna/tools/importwords.py.
+don't 5
+I'm 5
+it's 5
+can't 6
+that's 6
+didn't 6
+I'll 7
+I've 7
+I'd 7
+you're 7
+doesn't 7
+isn't 7
+won't 7
+wasn't 7
+there's 7
+he's 7
+let's 7
+she's 8
+we're 8
+they're 8
+what's 8
+couldn't 8
+wouldn't 8
+aren't 8
+haven't 8
+you'll 8
+we'll 8
+you've 8
+shouldn't 9
+hasn't 9
+hadn't 9
+weren't 9
+they'll 9
+he'll 9
+she'll 9
+we've 9
+they've 9
+you'd 9
+we'd 9
+they'd 9
+he'd 9
+who's 9
+here's 9
+she'd 10
+where's 10
+how's 10
+ain't 10
+ok 6
+okay 7

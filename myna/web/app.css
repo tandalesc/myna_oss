@@ -1,0 +1,198 @@
+/* app.css: the look of the phone page. Paper backdrop, the phone as the only object, controls in the corners.
+   The system's own font: the page loads no font. SPDX-License-Identifier: MIT */
+
+:root {
+  color-scheme: light dark;
+  --paper: #e4e7ea; --paper-lit: #f1f3f5; --ink: #15181c; --graphite: #59616a; --rule: rgba(21, 24, 28, .16);
+  --card: #f7f8f9; --ok: #17794f; --signal: #2447d5; --on-signal: #fff; --bad: #b3261e; --amber: #b86a00;
+  --cast: rgba(18, 24, 34, .30); --cast-near: rgba(18, 24, 34, .28); --shade: .8;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14171b; --paper-lit: #232830; --ink: #e9ecef; --graphite: #98a1ab; --rule: rgba(233, 236, 239, .2);
+    --card: #1d2127; --ok: #5fd0a0; --signal: #8ea5ff; --on-signal: #0d1330; --bad: #ff8a7a; --amber: #f0b45a;
+    --cast: rgba(0, 0, 0, .6); --cast-near: rgba(0, 0, 0, .5); --shade: 1;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html { height: 100%; background: var(--paper); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; min-height: 100%; color: var(--ink); font-size: 16px; line-height: 1.45;
+  background: radial-gradient(120% 80% at 50% 38%, var(--paper-lit), var(--paper) 70%); }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- the shelf: which phone ---- */
+#picker { max-width: 760px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
+  padding: calc(28px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) calc(22px + env(safe-area-inset-left)); }
+#picker h1 { margin: 0; font-size: clamp(34px, 9.5vw, 54px); line-height: 1.02; font-weight: 600; letter-spacing: -.028em; }
+#picker header p { margin: 14px 0 0; max-width: 34em; color: var(--graphite); font-size: 16px; }
+.shelf { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: clamp(14px, 5vw, 56px); padding: 34px 0 0; }
+.shelf > p { align-self: center; color: var(--graphite); }
+.pick { display: flex; flex-direction: column; align-items: center; text-align: center; border-radius: 18px; padding: 6px 4px 10px;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.pick .pic { display: block; position: relative; transition: transform .35s var(--ease); }
+.pick .pic img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; pointer-events: none; }
+.pick .pic img { filter: drop-shadow(0 7px 9px var(--cast)) drop-shadow(0 1px 2px var(--cast-near)); }
+.pick b { display: block; margin-top: 18px; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+.pick .mm { display: block; color: var(--graphite); font-size: 13px; font-variant-numeric: tabular-nums; }
+.pick .kept { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 500;
+  color: var(--graphite); border: 1px solid var(--rule); }
+.pick .kept.here { color: var(--signal); border-color: currentColor; }
+.pick .last { display: block; margin-top: 4px; min-height: 1.4em; color: var(--graphite); font-size: 12px; }
+@media (hover: hover) { .pick:hover .pic { transform: translateY(-8px); } }
+.pick:active .pic { transform: translateY(-4px) scale(.985); }
+.note { margin: 26px 0 0; color: var(--graphite); font-size: 13px; text-align: center; }
+
+/* ---- the stage: the phone ---- */
+body[data-screen="phone"] { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; }
+body[data-screen="phone"] #picker { display: none; }
+/* The stage takes the whole height that app.js measured (--stage-h). The phone may reach to the very bottom, into the strip
+   of the home indicator; only the buttons stay out of it. */
+#stage { position: fixed; left: 0; top: 0; width: 100%; height: var(--stage-h, 100%); overflow: hidden; touch-action: none;
+  background: radial-gradient(120% 80% at 50% 38%, var(--paper-lit), var(--paper) 70%);
+  padding: calc(3px + env(safe-area-inset-top)) env(safe-area-inset-right) 3px env(safe-area-inset-left);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: arrive .5s var(--ease) both; }
+@keyframes arrive { from { opacity: 0; } }
+#ruler { position: absolute; left: 0; top: 0; pointer-events: none; }
+/* As a home-screen app the page lies under the status bar, whose text is white: a little shade keeps it readable on the light paper. */
+@media (display-mode: standalone) and (prefers-color-scheme: light) {
+  body::before { content: ""; position: fixed; z-index: 5; left: 0; right: 0; top: 0; height: calc(env(safe-area-inset-top) * 1.25); pointer-events: none;
+    background: linear-gradient(rgba(20, 23, 27, .5), rgba(20, 23, 27, 0)); }
+}
+#rig { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; touch-action: none; cursor: grab; }
+#rig.held { cursor: grabbing; }
+.layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.layer > img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; -webkit-user-drag: none; }
+#face { will-change: transform; }
+/* The shadows are drawn once from the outline of each picture (app.js, shades): on the paper under both halves, and a
+   thin one where the lower edge of the face lies on the keypad. */
+.shade { position: absolute; left: 0; top: 0; pointer-events: none; opacity: var(--shade); }
+#shFaceClip { position: absolute; overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(#000 calc(100% - var(--fade, 20px)), transparent); mask-image: linear-gradient(#000 calc(100% - var(--fade, 20px)), transparent); }
+#shFace { will-change: transform; }
+#glass { position: absolute; background: #000; overflow: hidden; }
+#screen { display: block; width: 100%; height: 100%; }
+/* A flip (app.js, "the flip"): the lid (#face) turns about its hinge in 3D, the eye given by the rig's perspective; each of its
+   two faces shows from its own side only: the inside with the screen, and #lidBack, the closed picture, turned over onto
+   the back. #barrel lies over both halves at the hinge. */
+#rig.flip #face { transform-style: preserve-3d; }
+#rig.flip #face > img, #rig.flip #face > .key, #rig.flip #glass, #lidBack { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+#lidBack { position: absolute; overflow: hidden; transform-origin: 50% 0; transform: rotateX(180deg); pointer-events: none; }
+#lidBack > img { position: absolute; left: 0; pointer-events: none; -webkit-user-drag: none; }
+.key { position: absolute; border-radius: 22% / 30%; pointer-events: none; opacity: 0; transition: opacity .18s;
+  background: rgba(255, 255, 255, .38); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .9), 0 0 0 1.5px rgba(0, 0, 0, .45), 0 0 16px 2px rgba(255, 255, 255, .45); }
+.key.down { opacity: 1; transition: none; }
+
+#veil { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px;
+  padding: 10%; text-align: center; color: #d6dae0; background: #000; font-size: 13px; line-height: 1.35; transition: opacity .6s; }
+#veil.gone { opacity: 0; pointer-events: none; }
+#veil p { margin: 0; overflow-wrap: anywhere; }
+#status { min-height: 2.7em; display: flex; align-items: flex-end; }
+#bar { width: 78%; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+#bar i { display: block; height: 100%; width: 0; border-radius: 2px; background: #9db1ff; transition: width .25s linear; }
+#bar.wait i { animation: wait 1.4s ease-in-out infinite alternate; }
+@keyframes wait { from { opacity: .45; } to { opacity: 1; } }
+#error { color: #ff9a8c; font-weight: 500; white-space: pre-wrap; }
+/* The phone drawn in 3D (app.js, view3d; core/web/phone3d.js): the 2D drawing stays laid out (its geometry, the size, the
+   ruler) but is not shown, and the words over the screen while the phone starts move out of it onto the 3D screen (app.js
+   fitVeil). While the 3D phone is made the 2D one is not shown either, for a moment: it stands in only if that takes long. */
+#stage.three #rig, #stage.wait3d #rig { visibility: hidden; }
+#stage > #veil { inset: auto; left: 0; top: 0; transform-origin: 0 0; }
+#again { padding: 9px 16px; border-radius: 99px; color: #0d1330; background: #9db1ff; font-weight: 600; font-size: 13px; pointer-events: auto; }
+
+.corner { position: absolute; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--ink);
+  background: color-mix(in srgb, var(--card) 82%, transparent); border: 1px solid var(--rule);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: transform .15s var(--ease), background .15s; }
+@supports not (background: color-mix(in srgb, red, blue)) { .corner { background: var(--card); } }
+.corner:active { transform: scale(.92); }
+#menu { top: calc(8px + env(safe-area-inset-top)); right: calc(4px + env(safe-area-inset-right)); }
+#slide { bottom: calc(8px + env(safe-area-inset-bottom)); right: calc(4px + env(safe-area-inset-right)); }
+#size { bottom: calc(56px + env(safe-area-inset-bottom)); right: calc(4px + env(safe-area-inset-right)); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+#net { top: calc(8px + env(safe-area-inset-top)); left: calc(4px + env(safe-area-inset-left)); }
+#turn { bottom: calc(104px + env(safe-area-inset-bottom)); right: calc(4px + env(safe-area-inset-right)); }
+#turn[aria-pressed="true"] { color: var(--on-signal); background: var(--signal); border-color: transparent; }
+#net svg { stroke-width: 2.4; }
+#net[data-state="on"] { color: var(--ok); }
+#net[data-state="wait"] svg { animation: wait 1s ease-in-out infinite alternate; }
+#net[data-state="off"] { color: var(--amber); }
+#net[data-state="off"] svg { opacity: .55; }
+#net[data-state="off"]::after { content: ""; position: absolute; width: 24px; height: 2.4px; border-radius: 2px; background: currentColor; transform: rotate(-45deg); }
+#sheet h3.sub { margin-top: 16px; }
+#slide svg { transition: transform .3s var(--ease); }
+#slide[aria-pressed="true"] svg { transform: rotate(180deg); }
+#slow { position: absolute; top: 3px; right: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); border: 2px solid var(--card); }
+#toast { position: absolute; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); margin: 0; width: max-content; max-width: calc(100vw - 112px);
+  padding: 8px 15px; border-radius: 99px; font-size: 13px; line-height: 1.3; font-weight: 500; text-align: center; color: var(--paper); background: var(--ink);
+  box-shadow: 0 8px 24px var(--cast); pointer-events: none; opacity: 0; transition: opacity .3s; }
+#toast.on { opacity: .96; }
+
+/* ---- the settings sheet ---- */
+#scrim { position: fixed; left: 0; top: 0; width: 100%; height: var(--stage-h, 100%); background: rgba(8, 10, 14, .38); opacity: 0; transition: opacity .28s; }
+#scrim.on { opacity: 1; }
+#sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 82vh; max-height: min(82dvh, 700px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 8px calc(20px + env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+  background: var(--card); border-radius: 22px 22px 0 0; box-shadow: 0 -12px 40px var(--cast);
+  transform: translateY(102%); transition: transform .34s var(--ease); -webkit-user-select: none; user-select: none; }
+#sheet.on { transform: none; }
+.grab { width: 38px; height: 4px; margin: 0 auto 10px; border-radius: 2px; background: var(--rule); }
+#sheet header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+#sheet h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2; }
+#sheetSub { margin: 2px 0 0; color: var(--graphite); font-size: 13px; }
+#closeSheet { flex: none; width: 36px; height: 36px; margin: -2px -6px 0 0; border-radius: 50%; display: grid; place-items: center; color: var(--graphite); }
+#sheet > section { padding: 16px 0 0; }
+#sheet h3 { margin: 0 0 8px; font-size: 13px; font-weight: 500; color: var(--graphite); }
+.fine { margin: 7px 0 0; color: var(--graphite); font-size: 12.5px; line-height: 1.4; }
+.fine a { color: inherit; }
+.read { margin: 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.read b { font-weight: 600; letter-spacing: .02em; -webkit-user-select: text; user-select: text; }
+.read .link { margin-left: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chips button { padding: 8px 13px; border-radius: 99px; font-size: 14px; border: 1px solid var(--rule); touch-action: none; -webkit-touch-callout: none; }
+.chips button.down { color: var(--on-signal); background: var(--signal); border-color: var(--signal); }
+.swatches { display: flex; gap: 12px; }
+.swatches button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--rule); box-shadow: inset 0 0 0 3px var(--card); }
+.swatches button[aria-pressed="true"] { border: 2px solid var(--signal); }
+.seg { display: inline-flex; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+@supports not (background: color-mix(in srgb, red, blue)) { .seg { background: var(--rule); } }
+.seg button { padding: 7px 14px; border-radius: 9px; font-size: 14px; color: var(--graphite); }
+.seg button[aria-pressed="true"] { color: var(--ink); background: var(--card); font-weight: 500; box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+#calib, #log { margin-top: 12px; font-size: 13.5px; }
+summary { cursor: pointer; color: var(--graphite); padding: 4px 0; }
+#calBar { height: 26px; margin: 10px 0 8px; border-radius: 3px; background: var(--signal); color: var(--on-signal); font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; max-width: 100%; }
+#cal { width: 100%; accent-color: var(--signal); }
+.link { color: var(--signal); font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
+.switch { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14.5px; }
+.switch.first { margin-top: 0; }
+.switch input { width: 18px; height: 18px; accent-color: var(--signal); }
+.acts { display: flex; flex-direction: column; align-items: stretch; }
+.act { display: block; width: 100%; padding: 12px 16px; border-radius: 13px; font-size: 15.5px; font-weight: 600; color: var(--on-signal); background: var(--signal); text-align: center; }
+.act.first, .fine.first { margin-top: 0; }
+.act.quiet.first { margin-top: 0; }
+.act.quiet { margin-top: 10px; color: var(--ink); background: none; border: 1px solid var(--rule); font-weight: 500; }
+.act.danger { color: var(--bad); }
+#freshAsk .act.danger { margin-top: 10px; color: #fff; background: var(--bad); }
+@media (prefers-color-scheme: dark) { #freshAsk .act.danger { color: #2b0906; } }
+#log { padding-top: 6px; border-top: 1px solid var(--rule); margin-top: 18px; }
+pre { margin: 6px 0; padding: 10px; max-height: 220px; overflow: auto; border-radius: 10px; background: color-mix(in srgb, var(--ink) 6%, transparent); white-space: pre-wrap;
+  overflow-wrap: anywhere; font: 11px/1.4 ui-monospace, Menlo, Consolas, monospace; -webkit-user-select: text; user-select: text; }
+
+@media (min-width: 760px) {
+  #sheet { left: auto; right: 18px; bottom: 18px; top: 18px; width: 360px; max-height: none; border-radius: 20px; padding: 18px 22px 22px;
+    transform: translateX(calc(100% + 30px)); box-shadow: 0 18px 50px var(--cast); }
+  .grab { display: none; }
+  #scrim { background: rgba(8, 10, 14, .16); }
+  #menu { top: 18px; right: 18px; } #net { top: 18px; left: 18px; } #slide { bottom: 18px; right: 18px; } #size { bottom: 66px; right: 18px; }
+  #toast { bottom: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+/* a phone with no modem stand-in: only the words that say so */
+#textSec.nonet > :not(h3:first-of-type):not(#netState):not(#netWho) { display: none; }

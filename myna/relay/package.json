@@ -1,0 +1,15 @@
+{
+  "name": "myna-relay",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --var DEV:1",
+    "test": "node test/run.mjs",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261014.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.150.0"
+  }
+}

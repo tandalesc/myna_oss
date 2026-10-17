@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars
+# written by the tests (test/lib.mjs, test/run.mjs)
+wrangler.test-*.jsonc
+.test-*.env
+test/last_run.txt
+# the production settings of the owner's deploy (DEPLOY.md)
+wrangler.production.jsonc

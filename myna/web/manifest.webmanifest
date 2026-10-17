@@ -1,0 +1,16 @@
+{
+  "name": "Myna",
+  "short_name": "Myna",
+  "description": "A slider phone in the page, with Myna, open-source phone software.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#14171b",
+  "theme_color": "#14171b",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

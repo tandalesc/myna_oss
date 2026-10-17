@@ -1,0 +1,14 @@
+<!doctype html>
+<!-- icon.html: the picture of the home-screen icon: Myna's phone, closed (native/devices/myna/skin/closed.svg, Stone),
+     with Myna's standby screen in its glass (screen.png, a frame of myna/firmware/test/sim_telephony.py --frames).
+     Made into icon-512.png, icon-192.png and icon-180.png by myna/web/icons/make.sh. SPDX-License-Identifier: MIT -->
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 512px; height: 512px; overflow: hidden; background: radial-gradient(120% 90% at 50% 30%, #f6f1e9, #ddd3c4 75%); }
+  .p { position: absolute; left: 50%; top: 28px; width: 235px; height: 456px; transform: translateX(-50%); }
+  .p::before { content: ""; position: absolute; inset: 2% 4% 2%; border-radius: 26px; box-shadow: 0 26px 40px -8px rgba(40, 28, 18, .45), 0 4px 10px rgba(40, 28, 18, .3); }
+  img { position: absolute; width: 100%; height: 100%; }
+  /* the glass of skin.json: [25, 32, 126, 168] of 176 x 342 */
+  .s { position: absolute; left: 14.205%; top: 9.357%; width: 71.591%; height: 49.123%; image-rendering: auto; }
+</style>
+<div class="p"><img src="../../../native/devices/myna/skin/closed.svg" alt=""><img class="s" src="screen.png" alt=""></div>

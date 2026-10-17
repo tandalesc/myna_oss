@@ -1,0 +1,169 @@
+<!doctype html>
+<!-- index.html: pick a phone, then hold it: the drawn phone at its true size, its keys under the finger, a swipe slides it open.
+     Myna's phone page (myna/web/README.md). The page logic is app.js, the look is app.css; nothing is inline (strict
+     Content-Security-Policy). SPDX-License-Identifier: MIT -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e4e7ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171b" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Myna">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<meta name="format-detection" content="telephone=no">
+<title>Myna</title>
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body data-screen="picker">
+
+<main id="picker">
+  <header>
+    <h1>Pick up a phone</h1>
+    <p>A slider phone that runs inside this page, with Myna, open-source phone software. Press the keys. Swipe the screen up to slide it open. Text other phones, or yourself.</p>
+  </header>
+  <div id="phones" class="shelf" aria-busy="true"></div>
+  <p class="note" id="shelfNote"></p>
+</main>
+
+<section id="stage" hidden aria-label="The phone">
+  <canvas id="ruler" aria-hidden="true"></canvas>
+  <div id="rig">
+    <canvas id="shBase" class="shade" aria-hidden="true"></canvas>
+    <div id="shFaceClip"><canvas id="shFace" class="shade" aria-hidden="true"></canvas></div>
+    <div id="base" class="layer">
+      <img alt="" draggable="false">
+    </div>
+    <div id="face" class="layer">
+      <canvas id="shTouch" class="shade" aria-hidden="true"></canvas>
+      <img alt="" draggable="false">
+      <div id="glass">
+        <canvas id="screen" width="240" height="320" role="img" aria-label="The phone's screen"></canvas>
+        <div id="veil">
+          <p id="status" role="status"></p>
+          <div id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" hidden><i></i></div>
+          <p id="error" role="alert"></p>
+          <button id="again" hidden>Switch on again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="menu" class="corner" aria-label="Phone settings" aria-haspopup="dialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 16h14"/><circle cx="9" cy="8" r="2.4"/><circle cx="15" cy="16" r="2.4"/></svg>
+    <i id="slow" hidden></i>
+  </button>
+  <button id="net" class="corner" data-state="wait" aria-label="Text-message network: connecting">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19v-3M10 19v-7M15 19V8M20 19V4"/></svg>
+  </button>
+  <button id="size" class="corner" aria-label="Size of the phone"><span id="sizeText">1:1</span></button>
+  <button id="turn" class="corner" aria-label="Turn the phone round" aria-pressed="false" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9M20 4v5h-5M20 12a8 8 0 0 1-13.7 5.6L4 15M4 20v-5h5"/></svg>
+  </button>
+  <button id="slide" class="corner" aria-label="Slide the phone open" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg>
+  </button>
+  <p id="toast" role="status" hidden></p>
+</section>
+
+<div id="scrim" hidden></div>
+<aside id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <header>
+    <div>
+      <h2 id="sheetTitle">Phone</h2>
+      <p id="sheetSub"></p>
+    </div>
+    <button id="closeSheet" aria-label="Close settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+
+  <section id="textSec">
+    <h3>Text messages</h3>
+    <p class="read" id="numberRow">This phone's number is <b id="number">…</b> <button id="copyNumber" class="link">Copy</button></p>
+    <p class="fine" id="netState"></p>
+    <p class="fine" id="netWho"></p>
+    <div id="netSeg" hidden>
+      <h3 class="sub">Network</h3>
+      <div class="seg" role="group" aria-label="Text-message network">
+        <button data-net="relay" aria-pressed="true">Relay</button><button data-net="loopback" aria-pressed="false">Loopback</button>
+      </div>
+      <p class="fine">The relay connects this phone with other phones. On loopback every text comes back to this phone. Changing it restarts the phone; what it has stored is kept first.</p>
+    </div>
+  </section>
+
+  <section id="sideSec" hidden>
+    <h3>Keys on the sides</h3>
+    <div id="sideKeys" class="chips"></div>
+  </section>
+
+  <section id="colourSec" hidden>
+    <h3>Colour</h3>
+    <div id="colours" class="swatches" role="group" aria-label="Colour of the phone"></div>
+  </section>
+
+  <section>
+    <h3>Size</h3>
+    <div class="seg" role="group" aria-label="Size of the phone">
+      <button data-size="true" aria-pressed="true">True size</button><button data-size="fit" aria-pressed="false">Fit the screen</button>
+    </div>
+    <p class="fine" id="sizeNote"></p>
+    <label class="switch"><input id="rulerOn" type="checkbox"><span>Show the millimetre ruler</span></label>
+    <label class="switch" id="flatRow" hidden><input id="flatOn" type="checkbox"><span>Flat drawing (2D)</span></label>
+    <p class="fine" id="flatNote" hidden>The phone is drawn in 3D: the slide and the lid move as they do in the hand, and a sideways drag turns it round. The flat drawing asks less of the graphics chip.</p>
+    <details id="calib">
+      <summary>Adjust the true size</summary>
+      <p class="fine">Hold the short side of a bank card (54 mm) against the bar and move the slider until they match.</p>
+      <div id="calBar"><span>54 mm</span></div>
+      <input id="cal" type="range" min="0.7" max="1.4" step="0.005" value="1" aria-label="Correction of the true size">
+      <button id="calReset" class="link">Back to the estimate</button>
+    </details>
+  </section>
+
+  <section id="feelSec" hidden>
+    <h3>Key feedback</h3>
+    <label class="switch first"><input id="feel" type="checkbox"><span>A small tick when a key is pressed</span></label>
+    <p class="fine"><button id="feelTest" class="link">Test the tick</button></p>
+    <p class="fine" id="feelNote" hidden>No tick? On the iPhone, open Settings, Sounds &amp; Haptics, and turn on System Haptics.</p>
+  </section>
+
+  <section id="fullSec" hidden>
+    <h3>Full screen</h3>
+    <button id="full" class="act quiet first" hidden>Fill the screen</button>
+    <p class="fine first" id="homeHint" hidden>Safari on an iPhone has no full-screen button. Tap the Share button, then “Add to Home Screen”, and open the page from its new icon: it then fills the display. The home-screen copy keeps its own storage, so the phone's software is downloaded once more there.</p>
+  </section>
+
+  <section>
+    <h3>Speed</h3>
+    <p id="speed" class="read">Not running yet.</p>
+    <label class="switch"><input id="fast" type="checkbox"><span>Run with no speed limit</span></label>
+  </section>
+
+  <section class="acts">
+    <button id="off" class="act">Switch off and put down</button>
+    <p class="fine">Stops the phone and keeps what it has stored in this browser.</p>
+    <button id="save" class="act quiet">Keep its memory now</button>
+    <div id="freshRow">
+      <button id="fresh" class="act quiet danger">Start over</button>
+      <div id="freshAsk" hidden>
+        <p class="fine">Forget what this phone has stored in this browser and start it again?</p>
+        <button id="freshYes" class="act danger">Forget and start over</button>
+        <button id="freshNo" class="act quiet">Keep it</button>
+      </div>
+    </div>
+  </section>
+
+  <details id="log">
+    <summary id="numbers">Details</summary>
+    <pre id="console"></pre>
+    <p class="fine">Myna is open source (MIT). Fonts on the phone: Nunito, SIL Open Font License.</p>
+  </details>
+</aside>
+
+<script src="cell.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

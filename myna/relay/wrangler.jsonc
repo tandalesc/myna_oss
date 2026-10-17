@@ -1,0 +1,34 @@
+// The relay ("virtual cell network") for Myna's phone page (myna/web). See README.md and DEPLOY.md.
+// SPDX-License-Identifier: MIT
+{
+  "name": "myna-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": false }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "SHARD", "class_name": "Shard" },
+      { "name": "CONTROL", "class_name": "Control" }
+    ]
+  },
+  // Both classes are SQLite-backed (required on the free plan, the default for new classes).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Shard", "Control"] }],
+  // Join attempts per address and minute, counted by Cloudflare (no address is stored by the relay).
+  // The numbers here are fixed at deploy time; all other limits are changed on the admin page.
+  "ratelimits": [{ "name": "JOIN_LIMIT", "namespace_id": "1905", "simple": { "limit": 30, "period": 60 } }],
+  // Empty in the repository: right for `wrangler dev`, NOT for production. Each of these MUST be set before a public
+  // deploy (DEPLOY.md, steps 2, 3 and 6; README.md, "Must set for production").
+  "vars": {
+    // The Turnstile widget's site key. "" = no person check at the join. Production: the site key, and the widget's
+    // secret with `wrangler secret put TURNSTILE_SECRET` ("off" = no check, for local runs only).
+    "TURNSTILE_SITEKEY": "",
+    // Comma-separated origins that may open the socket ("" = any). Production: the phone page's origin.
+    "ALLOWED_ORIGINS": "",
+    // Cloudflare Access for /admin (production). Both empty: the shared secret ADMIN_SECRET is used instead (local runs).
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  }
+  // Secrets (never in this file): TURNSTILE_SECRET, TICKET_SECRET, ADMIN_SECRET (local runs only), ANTHROPIC_API_KEY (unused stub).
+  // Local runs read them from .dev.vars (not in the repository; .dev.vars.example shows the keys).
+}

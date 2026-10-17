@@ -1,0 +1,28 @@
+/* phone3d.css: the layer of the 3D phone (phone3d.js) and its two buttons. It takes the page's colours when the page has
+   them (--card, --ink, --rule of the phone page) and has its own otherwise. SPDX-License-Identifier: MIT */
+/* No transition: the 3D view and the 2D phone swap in one frame, both facing front (phone3d.js, swapIn()). */
+.p3d { position: absolute; inset: 0; opacity: 0; touch-action: none;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.p3d.on { opacity: 1; }
+.p3d[hidden] { display: none !important; }
+.p3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; outline: none;
+  background: transparent; border: 0; border-radius: 0; margin: 0; image-rendering: auto; }
+.p3d.held canvas { cursor: grabbing; }
+/* The main view (phone3d.js start()): the phone is drawn here at rest too. Its buttons only while it is turned; .fade lets
+   it come in over a 2D picture that stood in for it while it was being made. */
+.p3d.main:not(.active) .p3d-bar { display: none; }
+.p3d.main.fade { transition: opacity .22s ease-out; }
+
+/* Turn over, and back to using the phone: round buttons in the lower left corner (the page keeps the right side). */
+.p3d-bar { position: absolute; left: calc(4px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column-reverse; gap: 8px; pointer-events: none; }
+.p3d-btn { pointer-events: auto; width: 40px; height: 40px; padding: 0; margin: 0; border-radius: 50%; display: grid; place-items: center;
+  font: inherit; cursor: pointer; touch-action: manipulation;
+  color: var(--ink, #15181c); background: var(--card, #f7f8f9); border: 1px solid var(--rule, rgba(21, 24, 28, .16));
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: transform .15s cubic-bezier(.2, .8, .2, 1); }
+@supports (background: color-mix(in srgb, red, blue)) { .p3d-btn { background: color-mix(in srgb, var(--card, #f7f8f9) 82%, transparent); } }
+@media (prefers-color-scheme: dark) { .p3d-btn { color: var(--ink, #e9ecef); background: var(--card, #1d2127); border-color: var(--rule, rgba(233, 236, 239, .2)); } }
+.p3d-btn:active { transform: scale(.92); }
+.p3d-btn:focus-visible { outline: 2px solid var(--signal, #2447d5); outline-offset: 2px; }
+.p3d-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.p3d-use { color: var(--on-signal, #fff); background: var(--signal, #2447d5) !important; border-color: transparent; }

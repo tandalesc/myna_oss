@@ -1,0 +1,229 @@
+{
+  "format": 1,
+  "name": "Myna flip",
+  "credit": "closed.svg (with closed.albedo.svg, closed.mask.svg and closed.relief.svg, the lid's outside for the 3D view), open.svg, the hinge layers lid.svg, base.svg and hinge.svg, and the outside (back.svg, back_open.svg, rear.svg, left, right, top, bottom, left_open, right_open), each also in .ink and .ember, are drawings made for this project by draw.py from the rectangles in this file, with the parts in pebble.py (shared by the P2 family) and the lettering in lettering.py. Licence: MIT, as the project.",
+  "panel": {"w": 240, "h": 320},
+  "body": {"view": "closed", "rect": [4, 4, 168, 248], "mm": [48, 70.9]},
+  "default_view": "closed",
+  "views": [
+    {
+      "id": "closed",
+      "label": "Closed",
+      "image": "closed.svg",
+      "size": [176, 256],
+      "glass": [85, 76, 6, 8],
+      "input": {"switch": "slide", "state": "closed"},
+      "keys": {}
+    },
+    {
+      "id": "open",
+      "label": "Open",
+      "image": "open.svg",
+      "size": [176, 488],
+      "glass": [25, 30, 126, 168],
+      "input": {"switch": "slide", "state": "open"},
+      "keys": {
+        "soft_left": [14, 264, 74, 12],
+        "soft_right": [88, 264, 74, 12],
+        "call": [14, 278, 44, 28],
+        "end": [118, 278, 44, 28],
+        "activity": [14, 308, 44, 28],
+        "clear": [118, 308, 44, 28],
+        "up": [74, 283, 28, 10],
+        "left": [62, 293, 14, 24],
+        "select": [76, 293, 24, 24],
+        "right": [100, 293, 14, 24],
+        "down": [74, 317, 28, 10],
+        "1": [14, 338, 49, 28],
+        "2": [63, 338, 50, 28],
+        "3": [113, 338, 49, 28],
+        "4": [14, 368, 49, 28],
+        "5": [63, 368, 50, 28],
+        "6": [113, 368, 49, 28],
+        "7": [14, 398, 49, 28],
+        "8": [63, 398, 50, 28],
+        "9": [113, 398, 49, 28],
+        "star": [14, 428, 49, 28],
+        "0": [63, 428, 50, 28],
+        "hash": [113, 428, 49, 28]
+      }
+    }
+  ],
+  "key_titles": {
+    "select": "centre of the round key",
+    "activity": "activity key (lower left of the control keys)",
+    "clear": "back / clear (lower right of the control keys)"
+  },
+  "side_keys": [
+    {"key": "vol_up", "icon": "volume-2", "label": "Volume up"},
+    {"key": "vol_down", "icon": "volume-1", "label": "Volume down"},
+    {"key": "camera_half", "icon": "focus", "label": "Shutter half"},
+    {"key": "camera_full", "icon": "camera", "label": "Shutter full"},
+    {"key": "camera_mode", "icon": "video", "label": "Photo / video"},
+    {"key": "camera_review", "icon": "images", "label": "Review"},
+    {"key": "media2", "icon": "play", "label": "Media player"},
+    {"key": "media", "icon": "music", "label": "Music"},
+    {"key": "end", "icon": "power", "label": "Power", "title": "Hold 2 seconds to switch the phone off or on"}
+  ],
+  "variants": [
+    {"id": "stone", "label": "Stone", "swatch": "#d5d0c6"},
+    {"id": "ink", "label": "Ink", "swatch": "#2c2f35"},
+    {"id": "ember", "label": "Ember", "swatch": "#a8462f"}
+  ],
+  "default_variant": "stone",
+  "hinge": {
+    "closed": "closed",
+    "open": "open",
+    "lid": "lid.svg",
+    "base": "base.svg",
+    "barrel": "hinge.svg",
+    "axis_y": 244,
+    "offset": 232,
+    "open_deg": 162
+  },
+  "body3d": {
+    "px_per_mm": 3.5,
+    "thickness": 16.4,
+    "gap": 0.9,
+    "slabs": [
+      {
+        "id": "lid",
+        "label": "Lid: the display half; closed, its outside is the phone's front",
+        "z": [0, 6.2],
+        "rect": [4, 20, 168, 232],
+        "corners": {"top": [9, 0.35], "bottom": [40, 0.2]},
+        "outline": "M13 20 H163 C168.85 20 172 23.15 172 29 V212 C172 244 164 252 132 252 H44 C12 252 4 244 4 212 V29 C4 23.15 7.15 20 13 20 Z",
+        "edges": {"front": {"radius": 0.9, "chamfer": 0.35, "material": "satin"}, "back": {"radius": 0.9, "chamfer": 0.35, "material": "satin"}},
+        "bands": [{"z": [0, 2.0], "material": "shell"}, {"z": [2.0, 6.2], "material": "shell"}],
+        "materials": {"front": "closed.albedo.svg", "front_2d": "closed.svg", "back": "lid.svg", "side": "lacquer",
+          "front_finish": {"base": "lacquer", "r": "polish", "g": "pin", "mask": "closed.mask.svg", "relief": "closed.relief.svg", "relief_mm": 0.03,
+            "crown": [1.4, 0.8], "brush": {"g": {"grooves": "circles", "at": [88, 80]}}}}
+      },
+      {
+        "id": "base",
+        "label": "Base: key field, battery, camera",
+        "z": [7.1, 16.4],
+        "rect": [4, 20, 168, 232],
+        "corners": {"top": [9, 0.35], "bottom": [40, 0.2]},
+        "outline": "M13 20 H163 C168.85 20 172 23.15 172 29 V212 C172 244 164 252 132 252 H44 C12 252 4 244 4 212 V29 C4 23.15 7.15 20 13 20 Z",
+        "edges": {"front": {"radius": 0.9, "chamfer": 0.35, "material": "satin"}, "back": {"radius": 2.0}},
+        "bands": [{"z": [7.1, 8.7], "material": "shell"}, {"z": [8.7, 14.4], "material": "carrier"}, {"z": [14.4, 16.4], "material": "shell"}],
+        "materials": {"front": "base.svg", "back": "rear.svg", "side": "carrier"}
+      }
+    ],
+    "hinge": {
+      "moves": "lid",
+      "axis": [1, 0, 0],
+      "pivot": [88, 12, 6.65],
+      "angle": [0, 162],
+      "radius": 2.29,
+      "barrel": {"of": "lid", "x": [20, 156], "material": "satin", "round": 0.23},
+      "knuckles": [
+        {"of": "base", "x": [4, 19.5], "material": "shell", "round": [0.8, 0.17]},
+        {"of": "base", "x": [156.5, 172], "material": "shell", "round": [0.17, 0.8]}
+      ],
+      "pin": {"r": 0.63, "material": "spun"}
+    },
+    "materials": {
+      "stone": {
+        "shell": {"colour": "#d5d0c6", "finish": "soft-touch", "roughness": 0.7, "metalness": 0, "specular": 0.25, "sheen": 0.22, "sheen_roughness": 0.8},
+        "carrier": {"colour": "#b2ab9e", "finish": "matte", "roughness": 0.85, "metalness": 0, "specular": 0.3},
+        "satin": {"colour": "#cfccc6", "light": "#fbfaf7", "dark": "#a39f97", "finish": "satin metal", "roughness": 0.32, "metalness": 1, "anisotropy": 0.7, "brush": "linear"},
+        "spun": {"colour": "#d9d6d1", "light": "#fbfaf8", "dark": "#aaa69e", "finish": "spun metal", "roughness": 0.28, "metalness": 1, "anisotropy": 0.85, "brush": "radial"},
+        "steel": {"colour": "#b3b6bb", "finish": "brushed stainless", "roughness": 0.3, "metalness": 1, "anisotropy": 0.6, "brush": "linear"},
+        "glass": {"colour": "#141517", "finish": "glass", "roughness": 0.03, "metalness": 0, "specular": 1, "env": 0.35},
+        "rubber": {"colour": "#9d968a", "finish": "rubber", "roughness": 0.95, "metalness": 0},
+        "lens": {"colour": "#07080b", "finish": "coated glass", "roughness": 0.05, "metalness": 0, "specular": 1, "clearcoat": 1, "clearcoat_roughness": 0.02, "iridescence": 0.8, "env": 0.6},
+        "frost": {"colour": "#ece8df", "finish": "frosted window", "roughness": 0.45, "metalness": 0, "specular": 0.6, "sheen": 0.5, "sheen_roughness": 0.5, "clearcoat": 0.3},
+        "mesh": {"colour": "#2a2c30", "finish": "fine steel mesh", "roughness": 0.42, "metalness": 0.75, "anisotropy": 0.3, "brush": "linear", "env": 0.7},
+        "tongue": {"colour": "#141518", "finish": "matte", "roughness": 0.8, "metalness": 0, "specular": 0.3},
+        "lacquer": {"colour": "#d5d0c6", "finish": "high-gloss lacquer (2K clear over the colour)", "roughness": 0.5, "metalness": 0, "specular": 0.22, "clearcoat": 1, "clearcoat_roughness": 0.025},
+        "pin": {"colour": "#ead7ae", "finish": "spun-brushed champagne pinstripe", "roughness": 0.24, "metalness": 1, "anisotropy": 0.9, "brush": "radial"},
+        "polish": {"colour": "#ead7ae", "finish": "polished champagne", "roughness": 0.08, "metalness": 1},
+        "jewel": {"colour": "#f3f1ec", "finish": "cut clear acrylic over a white diffuser", "roughness": 0.03, "metalness": 0, "specular": 1, "clearcoat": 1, "clearcoat_roughness": 0.01, "iridescence": 0.25, "env": 1.3}
+      },
+      "ink": {
+        "shell": {"colour": "#2c2f35", "finish": "soft-touch", "roughness": 0.7, "metalness": 0, "specular": 0.25, "sheen": 0.22, "sheen_roughness": 0.8},
+        "carrier": {"colour": "#1b1d21", "finish": "matte", "roughness": 0.85, "metalness": 0, "specular": 0.3},
+        "satin": {"colour": "#a7abb0", "light": "#e4e6e9", "dark": "#6a6f77", "finish": "satin metal", "roughness": 0.32, "metalness": 1, "anisotropy": 0.7, "brush": "linear"},
+        "spun": {"colour": "#c0c3c8", "light": "#f1f2f4", "dark": "#868b93", "finish": "spun metal", "roughness": 0.28, "metalness": 1, "anisotropy": 0.85, "brush": "radial"},
+        "steel": {"colour": "#b3b6bb", "finish": "brushed stainless", "roughness": 0.3, "metalness": 1, "anisotropy": 0.6, "brush": "linear"},
+        "glass": {"colour": "#0d0e10", "finish": "glass", "roughness": 0.03, "metalness": 0, "specular": 1, "env": 0.35},
+        "rubber": {"colour": "#121316", "finish": "rubber", "roughness": 0.95, "metalness": 0},
+        "lens": {"colour": "#07080b", "finish": "coated glass", "roughness": 0.05, "metalness": 0, "specular": 1, "clearcoat": 1, "clearcoat_roughness": 0.02, "iridescence": 0.8, "env": 0.6},
+        "frost": {"colour": "#ece8df", "finish": "frosted window", "roughness": 0.45, "metalness": 0, "specular": 0.6, "sheen": 0.5, "sheen_roughness": 0.5, "clearcoat": 0.3},
+        "mesh": {"colour": "#2a2c30", "finish": "fine steel mesh", "roughness": 0.42, "metalness": 0.75, "anisotropy": 0.3, "brush": "linear", "env": 0.7},
+        "tongue": {"colour": "#141518", "finish": "matte", "roughness": 0.8, "metalness": 0, "specular": 0.3},
+        "lacquer": {"colour": "#2c2f35", "finish": "high-gloss lacquer (2K clear over the colour)", "roughness": 0.5, "metalness": 0, "specular": 0.22, "clearcoat": 1, "clearcoat_roughness": 0.025},
+        "pin": {"colour": "#a9b8d2", "finish": "spun-brushed blue steel pinstripe", "roughness": 0.24, "metalness": 1, "anisotropy": 0.9, "brush": "radial"},
+        "polish": {"colour": "#a9b8d2", "finish": "polished blue steel", "roughness": 0.08, "metalness": 1},
+        "jewel": {"colour": "#f3f1ec", "finish": "cut clear acrylic over a white diffuser", "roughness": 0.03, "metalness": 0, "specular": 1, "clearcoat": 1, "clearcoat_roughness": 0.01, "iridescence": 0.25, "env": 1.3}
+      },
+      "ember": {
+        "shell": {"colour": "#a8462f", "finish": "soft-touch", "roughness": 0.7, "metalness": 0, "specular": 0.25, "sheen": 0.22, "sheen_roughness": 0.8},
+        "carrier": {"colour": "#7a3120", "finish": "matte", "roughness": 0.85, "metalness": 0, "specular": 0.3},
+        "satin": {"colour": "#d0bfae", "light": "#f7ece0", "dark": "#a8937c", "finish": "satin metal", "roughness": 0.32, "metalness": 1, "anisotropy": 0.7, "brush": "linear"},
+        "spun": {"colour": "#d7cbbe", "light": "#fbf4ec", "dark": "#b3a291", "finish": "spun metal", "roughness": 0.28, "metalness": 1, "anisotropy": 0.85, "brush": "radial"},
+        "steel": {"colour": "#b3b6bb", "finish": "brushed stainless", "roughness": 0.3, "metalness": 1, "anisotropy": 0.6, "brush": "linear"},
+        "glass": {"colour": "#130e0d", "finish": "glass", "roughness": 0.03, "metalness": 0, "specular": 1, "env": 0.35},
+        "rubber": {"colour": "#64261a", "finish": "rubber", "roughness": 0.95, "metalness": 0},
+        "lens": {"colour": "#07080b", "finish": "coated glass", "roughness": 0.05, "metalness": 0, "specular": 1, "clearcoat": 1, "clearcoat_roughness": 0.02, "iridescence": 0.8, "env": 0.6},
+        "frost": {"colour": "#ece8df", "finish": "frosted window", "roughness": 0.45, "metalness": 0, "specular": 0.6, "sheen": 0.5, "sheen_roughness": 0.5, "clearcoat": 0.3},
+        "mesh": {"colour": "#2a2c30", "finish": "fine steel mesh", "roughness": 0.42, "metalness": 0.75, "anisotropy": 0.3, "brush": "linear", "env": 0.7},
+        "tongue": {"colour": "#141518", "finish": "matte", "roughness": 0.8, "metalness": 0, "specular": 0.3},
+        "lacquer": {"colour": "#a8462f", "finish": "high-gloss lacquer (2K clear over the colour)", "roughness": 0.5, "metalness": 0, "specular": 0.22, "clearcoat": 1, "clearcoat_roughness": 0.025},
+        "pin": {"colour": "#efbda8", "finish": "spun-brushed rose gold pinstripe", "roughness": 0.24, "metalness": 1, "anisotropy": 0.9, "brush": "radial"},
+        "polish": {"colour": "#efbda8", "finish": "polished rose gold", "roughness": 0.08, "metalness": 1},
+        "jewel": {"colour": "#f3f1ec", "finish": "cut clear acrylic over a white diffuser", "roughness": 0.03, "metalness": 0, "specular": 1, "clearcoat": 1, "clearcoat_roughness": 0.01, "iridescence": 0.25, "env": 1.3}
+      }
+    },
+    "views": [
+      {"id": "back", "label": "Back", "image": "back.svg", "size": [176, 256], "look": "back", "state": "closed"},
+      {"id": "back_open", "label": "Back, open (the lid opened flat)", "image": "back_open.svg", "size": [176, 488], "look": "back", "state": "open"},
+      {"id": "rear", "label": "Base from behind", "image": "rear.svg", "size": [176, 488], "look": "back", "layer": "base"},
+      {"id": "left", "label": "Left side", "image": "left.svg", "size": [57.4, 248], "look": "left", "state": "closed"},
+      {"id": "right", "label": "Right side", "image": "right.svg", "size": [57.4, 248], "look": "right", "state": "closed"},
+      {"id": "top", "label": "Top: the hinge", "image": "top.svg", "size": [168, 57.4], "look": "top", "state": "closed"},
+      {"id": "bottom", "label": "Bottom: the free ends", "image": "bottom.svg", "size": [168, 57.4], "look": "bottom", "state": "closed"},
+      {"id": "left_open", "label": "Left side, open", "image": "left_open.svg", "size": [107, 476], "look": "left", "state": "open"},
+      {"id": "right_open", "label": "Right side, open", "image": "right_open.svg", "size": [108, 476], "look": "right", "state": "open"}
+    ],
+    "keys": [
+      {"key": "vol_up", "side": "right", "y": [36, 58], "z": [10.35, 12.75], "proud": 0.5, "ends": "start", "material": "shell"},
+      {"key": "vol_down", "side": "right", "y": [58, 80], "z": [10.35, 12.75], "proud": 0.5, "ends": "end", "material": "shell"},
+      {"key": "camera_full", "side": "right", "y": [196, 224], "z": [10.29, 12.81], "proud": 0.5, "material": "spun", "title": "Two-stage shutter: a full press also presses camera_half"}
+    ],
+    "wells": [
+      {"slab": "base", "outline": "M73.3 48 H102.7 A29 29 0 0 1 102.7 98 H73.3 A29 29 0 0 1 73.3 48 Z", "depth": 0.6, "material": "shell"}
+    ],
+    "caps": [
+      {"key": "soft_left", "slab": "base", "outline": "M87.35 32.65 H26 C18.06 32.65 14.65 36.05 14.65 44 V44.35 H87.35 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "soft_right", "slab": "base", "outline": "M88.65 32.65 H150 C157.94 32.65 161.35 36.05 161.35 44 V44.35 H88.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": ["call", "end"], "slab": "base", "outline": "M14.65 45.65 H161.35 V74.35 H116.97 A29 29 0 0 0 102.7 48 H73.3 A29 29 0 0 0 59.03 74.35 H14.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": ["activity", "clear"], "slab": "base", "outline": "M14.65 75.65 H59.12 A29 29 0 0 0 73.3 98 H102.7 A29 29 0 0 0 116.88 75.65 H161.35 V104.35 H14.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": ["select", "up", "down", "left", "right"], "slab": "base", "outline": "M74.14 51 H101.86 A26 26 0 0 1 101.86 95 H74.14 A26 26 0 0 1 74.14 51 Z", "z": [-0.3, 0.6], "edge": 0.25, "dome": 0.25, "material": "spun"},
+      {"key": "1", "slab": "base", "outline": "M14.65 105.65 H62.35 V134.35 H14.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "2", "slab": "base", "outline": "M63.65 105.65 H112.35 V134.35 H63.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "3", "slab": "base", "outline": "M113.65 105.65 H161.35 V134.35 H113.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "4", "slab": "base", "outline": "M14.65 135.65 H62.35 V164.35 H14.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "5", "slab": "base", "outline": "M63.65 135.65 H112.35 V164.35 H63.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "6", "slab": "base", "outline": "M113.65 135.65 H161.35 V164.35 H113.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "7", "slab": "base", "outline": "M14.65 165.65 H62.35 V194.35 H14.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "8", "slab": "base", "outline": "M63.65 165.65 H112.35 V194.35 H63.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "9", "slab": "base", "outline": "M113.65 165.65 H161.35 V194.35 H113.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "star", "slab": "base", "outline": "M14.65 195.65 H62.35 V223.35 H26 C18.05 223.35 14.65 219.94 14.65 212 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "0", "slab": "base", "outline": "M63.65 195.65 H112.35 V223.35 H63.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"},
+      {"key": "hash", "slab": "base", "outline": "M113.65 195.65 H161.35 V212 C161.35 219.94 157.94 223.35 150 223.35 H113.65 Z", "z": [-0.4, 0], "edge": 0.18, "material": "shell"}
+    ],
+    "inlays": [
+      {"slab": "lid", "face": "back", "outline": "M44 38 H132 C157.6 38 164 44.4 164 70 V213 C164 238.6 157.6 245 132 245 H44 C18.4 245 12 238.6 12 213 V70 C12 44.4 18.4 38 44 38 Z", "material": "glass"}
+    ],
+    "features": [
+      {"id": "camera", "look": "back", "at": [88, 50], "r": 15, "outline": "M80 37.31 H96 A15 15 0 0 1 96 62.69 H80 A15 15 0 0 1 80 37.31 Z", "proud": 0.5, "lens": {"r": 8.4, "bevel": 1.5, "depth": 0.4}},
+      {"id": "flash", "look": "back", "at": [88, 73], "size": [12, 4.6], "outline": "M84.3 70.7 H91.7 A2.3 2.3 0 0 1 94 73 V73 A2.3 2.3 0 0 1 91.7 75.3 H84.3 A2.3 2.3 0 0 1 82 73 V73 A2.3 2.3 0 0 1 84.3 70.7 Z", "proud": 0.12, "material": "frost"},
+      {"id": "lamp", "look": "front", "slab": "lid", "at": [88, 80], "r": 10.5, "outline": "M77.5 80 A10.5 10.5 0 1 1 98.5 80 A10.5 10.5 0 1 1 77.5 80 Z", "window": 8.2, "proud": 0.15, "ring": "pin", "material": "jewel", "cut": "jewel", "facets": 12, "crown": 0.45, "girdle": 0.12, "table": 0.52},
+      {"id": "earpiece", "look": "inner", "slab": "lid", "outline": "M78.1 234.8 H97.9 A1.1 1.1 0 0 1 99 235.9 V235.9 A1.1 1.1 0 0 1 97.9 237 H78.1 A1.1 1.1 0 0 1 77 235.9 V235.9 A1.1 1.1 0 0 1 78.1 234.8 Z", "depth": 0.6, "edge": 0.2, "material": "mesh", "wall": "mesh"},
+      {"id": "usb_c", "side": "bottom", "slab": "base", "x": [72.355, 103.645], "z": [9.92, 13.18], "size": [8.94, 3.26], "depth": 3.6, "shell": 0.2, "tongue": [6.69, 0.7], "material": "steel", "inside": "tongue"}
+    ]
+  }
+}

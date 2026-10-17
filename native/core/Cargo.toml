@@ -1,0 +1,31 @@
+[package]
+name = "dbcore"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "CPU core of the DB3210 phone simulator: an ARM926EJ-S interpreter with MMU behind a small C interface"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[[bin]]
+name = "dbrun"
+path = "tools/dbrun.rs"
+test = false
+
+[[bin]]
+name = "dbreplay"
+path = "tools/dbreplay.rs"
+test = false
+
+[profile.release]
+opt-level = 3
+panic = "abort"
+codegen-units = 1
+debug = false
+
+[profile.dev]
+panic = "abort"
+opt-level = 1

@@ -1,0 +1,6 @@
+# .dev.vars: the secrets of a LOCAL run (`npm run dev`). Copy this file to .dev.vars and change the values.
+# Never deploy with these: production secrets are set with `npx wrangler secret put NAME` (DEPLOY.md, step 4).
+# .dev.vars is not in the repository (.gitignore).
+TURNSTILE_SECRET=off
+TICKET_SECRET=change-me
+ADMIN_SECRET=change-me

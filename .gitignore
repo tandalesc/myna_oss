@@ -1,0 +1,9 @@
+# builds and local state: not part of the tree
+/myna/firmware/build/
+/native/core/build/
+/native/core/target/
+__pycache__/
+.DS_Store
+node_modules/
+.wrangler/
+.dev.vars

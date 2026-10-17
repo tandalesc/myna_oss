@@ -1,0 +1,57 @@
+# The simulator's Python files that a phone with a firmware of our own (a profile with BOOT_ELF: myna) imports: the
+# launcher, the device models its profile attaches, the AT modem stand-in with its cell network, the flash state and the
+# compiled core's Python side. One path a line, from the repository root.
+#   myna/web/serve.py           puts these files (and the BOOT_ELF device folders) into the page's archive, phone_src.json
+#   tools/export_release.py     copies them into Myna's release
+#   myna/firmware/test/stock_free.py   fails when a Myna run imports a file of the repository that is not listed here
+# Found with an import tracer on myna/firmware/test/sim_telephony.py (both networks, the compiled core), plus dbcore_wasm.py,
+# the core's binding for the browser. Nothing of the stock firmware's stand-ins, profiles or key tables is in the list.
+native/boot.py
+native/sim/db3210.py
+native/tools/flash_state.py
+native/devices/__init__.py
+native/emu/__init__.py
+native/emu/bus.py
+native/emu/loaders.py
+native/emu/mmu.py
+native/emu/stubs.py
+native/emu/uart.py
+native/emu_apex/__init__.py
+native/emu_apex/apex.py
+native/emu_apex/waves.py
+native/emu_cell/__init__.py
+native/emu_cell/cell.py
+native/emu_dsp/__init__.py
+native/emu_dsp/ave.py
+native/emu_gpio/__init__.py
+native/emu_gpio/gpio.py
+native/emu_i2c/__init__.py
+native/emu_i2c/battery.py
+native/emu_i2c/bus.py
+native/emu_i2c/devices.py
+native/emu_i2c/master.py
+native/emu_i2c/soc_rtc.py
+native/emu_i2s/__init__.py
+native/emu_i2s/i2s.py
+native/emu_irq/__init__.py
+native/emu_irq/clock.py
+native/emu_irq/system.py
+native/emu_irq/timer.py
+native/emu_irq/vic.py
+native/emu_keypad/__init__.py
+native/emu_keypad/inputs.py
+native/emu_keypad/keypad.py
+native/emu_lcd/lcd_model.py
+native/emu_lcd/lcd_native.py
+native/emu_link/__init__.py
+native/emu_link/aaif.py
+native/emu_link/dmac.py
+native/emu_modem_at/__init__.py
+native/emu_modem_at/at.py
+native/emu_modem_at/cmux.py
+native/emu_modem_at/config.py
+native/emu_modem_at/modem.py
+native/emu_nand/nand_model.py
+native/core/python/dbcore.py
+native/core/python/dbcore_wasm.py
+native/core/python/machine.py
