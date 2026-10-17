@@ -93,7 +93,7 @@ the kill switch on the admin page (texts and connections end), and step 10 (ever
 
 ## 8. What the phone page must do
 
-The phone page is `myna/web` of this repository; it does all of this already except the Turnstile widget (point 3).
+The phone page is `myna/web` of this repository; it does all of this.
 
 0. The phone's signal: `client/cell.js` posts `{t:'cell_state', up}` to the worker (PROTOCOL.md section 7); the
    page's worker passes it to the phone.
@@ -103,8 +103,11 @@ The phone page is `myna/web` of this repository; it does all of this already exc
    `link.number` is `''` at first: the number comes with `onState` (`link.format(n)` writes it as `1234 5678 9012`).
    `state`: `online` = service; `offline`, `connecting` = no service; `stopped` = say why (`text`).
 3. `turnstile(sitekey)` must return a promise of a token: load `https://challenges.cloudflare.com/turnstile/v0/api.js`,
-   render the widget with the site key it is given, resolve with the token. The page passes `turnstile: null` now: with
-   a site key set here, its join is refused until this is written.
+   render the widget with the site key it is given, resolve with the token. The page does: it asks for the check before
+   the first join when its `config.json` names the site key (`serve.py --turnstile SITEKEY`, the same as
+   `TURNSTILE_SITEKEY` here), holds the token until the relay asks, and shows the number once the check passes
+   (`myna/web/README.md`, "Getting a number"). While the 12-hour ticket of the last join is valid (`link.ticket()`) it asks
+   for nothing.
 4. Content security policy: `connect-src 'self' wss://relay.example.com`; for Turnstile
    `script-src ... https://challenges.cloudflare.com` and `frame-src https://challenges.cloudflare.com`.
 5. Do not send the page's `report` lines to a server in production (they hold the phone's own number).

@@ -585,6 +585,7 @@ for (let d = 0; d < 10; d++) KEYS[String(d)] = String(d);
 const held = new Map();
 const typing = e => !$('sheet').hidden || (e.target && e.target.closest && e.target.closest('input, summary, a'));
 addEventListener('keydown', e => {
+  if (ON.step) { if (e.key === 'Escape' && ON.step === 'number') { e.preventDefault(); onHide(); } return; }      // the phone waits under the sheet
   if (!$('sheet').hidden && e.key === 'Escape') { e.preventDefault(); return sheet(false); }
   if (!S || typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === 'Escape' && v3 && v3.active) { e.preventDefault(); v3.exit(); return; }
@@ -629,9 +630,15 @@ function cellState(s) {
     : net === 'loopback' ? 'Every text this phone sends comes back to it, from the number it was sent to.' + (RELAY ? '' : ' This page has no relay to other phones.')
     : 'Other phones on the relay can text it; a text to 3246 comes back to you.';
   for (const b of document.querySelectorAll('[data-net]')) b.setAttribute('aria-pressed', String(b.dataset.net === net));
+  const put = s.state === 'stopped' && s.reason === 'later';
+  if (put) { $('net').setAttribute('aria-label', 'Text-message network: no number yet'); $('netState').textContent = 'No number yet: this phone cannot text other phones.'; $('netWho').textContent = ''; }
+  $('getNumber').hidden = !(put || (s.state === 'offline' && s.reason === 'turnstile'));
+  if (s.state === 'online') ON.gave = 0;
+  if (s.state === 'offline' && s.reason === 'turnstile' && ON.gave) { ON.gave = 0; onFail('refused'); }
+  onLine();
   if (s.state !== was) {
     report(`cell: ${s.state}${s.reason ? ' (' + s.reason + ')' : ''} ${A.number}`);
-    if (A.running && (look === 'off' || (s.state === 'online' && (was === 'offline' || was === 'stopped')))) toast(look === 'off' ? 'No service' : 'Connected again');
+    if (A.running && !ON.step && !put && (look === 'off' || (s.state === 'online' && (was === 'offline' || was === 'stopped')))) toast(look === 'off' ? 'No service' : 'Connected again');
   }
 }
 $('net').addEventListener('click', () => toast($('net').getAttribute('aria-label').replace('Text-message network: ', '') + (A.number ? `, ${group(A.number)}` : ''), 3200));
@@ -688,12 +695,156 @@ function newWorker() {
   worker.onerror = e => fail('The worker failed: ' + (e.message || 'it could not be loaded'));
   worker.onmessage = e => onMessage(e.data);
   // The text-message network: the relay (a number of 12 digits, made from this browser's key; it comes a moment later),
-  // or the stand-in's loopback network (no number: a text comes back from the number it was sent to). The person check
-  // of the relay is not set up here: where the relay asks for one, `turnstile` must be a function (site key) -> promise
-  // of a token (myna/relay/DEPLOY.md, section 8).
-  if (net === 'relay') link = cellLink(worker, () => A.emu, report, { url: RELAY, onState: cellState, turnstile: null });
+  // or the stand-in's loopback network (no number: a text comes back from the number it was sent to). Where the relay
+  // asks for the person check, personCheck() gets the token. After the first join of this browser's number the phone gets
+  // one welcome text from the echo service (3246), made by cell.js.
+  const welcome = n => `Hi from Myna! Your number is ${group(n)}. Give it to a friend so they can text you, or text 3246 and it comes straight back.`;
+  if (net === 'relay') link = cellLink(worker, () => A.emu, report, { url: RELAY, onState: cellState, turnstile: personCheck, welcome });
   else { link = null; cellState({ state: 'loopback', number: '' }); }
 }
+
+// ---- getting a number: the relay's person check, then the number ----
+// A relay with the person check (Turnstile, myna/relay/DEPLOY.md section 8) lets a phone join only with a token from it,
+// at the first join and again once the 12-hour ticket of the last join has run out. config.json names the site key
+// (serve.py --turnstile): when a phone with a modem is picked and this browser holds no valid ticket, the sheet #onboard
+// comes over the stage while the phone loads behind it. The check first (Cloudflare's widget, loaded then); its token is
+// held until cell.js asks for it (personCheck, when the relay sends its challenge), then the number with the state of its
+// connection. A token is good once and for 300 s: one older than 250 s, used, or for another site key is not given, and
+// the check is shown again. A refused check says so and offers another; "Not now" puts it off: the link stops ('later')
+// and the phone has no service until "Get a number" in the settings.
+let SITEKEY = '';                          // config.json's "turnstile"
+const ON = { step: '', held: null, ask: null, later: false, gave: 0, widget: null, sitekey: '' };
+const later = () => Object.assign(new Error('put off'), { later: true });
+let turnstileApi = null;
+function loadTurnstile() {
+  if (!turnstileApi) turnstileApi = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    s.onload = () => window.turnstile ? res(window.turnstile) : rej(new Error('the check did not start'));
+    s.onerror = () => { turnstileApi = null; s.remove(); rej(new Error('the check could not be loaded')); };
+    document.head.append(s);
+  });
+  return turnstileApi;
+}
+function dropWidget() {
+  if (ON.widget !== null && window.turnstile) try { window.turnstile.remove(ON.widget); } catch (e) { /* gone */ }
+  ON.widget = null; $('onWidget').replaceChildren();
+}
+// The sheet at a step (check, number, fail), or away (''). While it is up the stage takes no finger, key or focus.
+function onShow(step) {
+  const box = $('onboard'), sc = $('onScrim'), was = ON.step;
+  ON.step = step;
+  for (const [id, at, title] of [['onCheck', 'check', 'onTitle'], ['onNumber', 'number', 'onNumTitle'], ['onFail', 'fail', 'onFailTitle']]) {
+    $(id).hidden = at !== step;
+    if (at === step) box.setAttribute('aria-labelledby', title);
+  }
+  $('onPrivate').hidden = step === 'number';
+  if (!was) {
+    letGo(); stage.inert = true;
+    box.hidden = sc.hidden = false; void box.offsetWidth; box.classList.add('on'); sc.classList.add('on');
+  }
+  A.onboard = step;
+}
+function onHide() {
+  if (!ON.step) return;
+  ON.step = A.onboard = '';
+  stage.inert = false;
+  dropWidget();
+  const box = $('onboard'), sc = $('onScrim');
+  box.classList.remove('on'); sc.classList.remove('on');
+  setTimeout(() => { if (!ON.step) box.hidden = sc.hidden = true; }, calm.matches ? 0 : 340);
+}
+async function onCheck(sitekey) {
+  ON.sitekey = sitekey || SITEKEY;
+  const t = link && link.ticket();
+  $('onTitle').textContent = t ? 'Check again to reconnect' : 'Get your number';
+  $('onWhy').textContent = t && link.number ? `Your number ${group(link.number)} is still yours. Every 12 hours a quick check keeps robots off the network.`
+    : 'These phones text each other over a small network. A quick check keeps robots off it.';
+  $('onWait').textContent = 'Loading the check';
+  dropWidget();
+  onShow('check');
+  $('onTitle').focus({ preventScroll: true });
+  let ts;
+  try { ts = await loadTurnstile(); } catch (e) { report('person check: ' + e.message); return ON.step === 'check' && onFail('load'); }
+  if (ON.step !== 'check') return;
+  $('onWait').textContent = '';
+  dropWidget();
+  ON.widget = ts.render('#onWidget', {
+    sitekey: ON.sitekey, action: 'join', theme: 'auto', size: 'flexible', 'refresh-expired': 'auto',
+    callback: tokenIn,
+    'expired-callback': () => { ON.held = null; },
+    'error-callback': code => { report('person check: error ' + code); onFail('error'); return true; },
+    'timeout-callback': () => onFail('error'),
+    'unsupported-callback': () => onFail('unsupported'),
+  });
+}
+function tokenIn(token) {
+  report('person check passed');
+  ON.held = { token, at: Date.now(), sitekey: ON.sitekey, used: false };
+  if (ON.ask) give();
+  else if (link) link.reconnect();          // after a refusal or "Not now": now, not at the link's next try
+  if (ON.step === 'check') setTimeout(() => { if (ON.step === 'check') onNumber(); }, calm.matches ? 0 : 650);      // the widget's tick shows a moment
+}
+function give() {
+  const a = ON.ask, h = ON.held;
+  ON.ask = null; h.used = true; ON.gave = Date.now();
+  a.res(h.token);
+}
+// cell.js asks for a token: the held one when it is good, else the check again (a refused one waits for "Try again").
+function personCheck(sitekey) {
+  if (ON.ask) { ON.ask.rej(new Error('asked again')); ON.ask = null; }
+  if (ON.later) return Promise.reject(later());
+  return new Promise((res, rej) => {
+    ON.ask = { res, rej };
+    const h = ON.held;
+    if (h && !h.used && h.sitekey === sitekey && Date.now() - h.at < 250000) return give();
+    report('the relay asks for the person check');
+    if (ON.step !== 'fail' && !(ON.step === 'check' && ON.sitekey === sitekey)) onCheck(sitekey);
+  });
+}
+function onNumber() {
+  const n = group(link.number).split(' ');
+  $('onDigits').replaceChildren(...n.flatMap((g, i) => { const e = document.createElement('span'); e.textContent = g; return i ? [' ', e] : [e]; }));
+  dropWidget();
+  onShow('number');
+  onLine();
+  $('onNumTitle').focus({ preventScroll: true });
+}
+// The line under the number: how far its phone is from the network.
+function onLine() {
+  if (ON.step !== 'number') return;
+  const s = A.cell, [look, words] = s === 'online' ? ['on', 'On the network'] : !A.running ? ['wait', 'Your phone is switching on']
+    : s === 'stopped' ? ['off', 'No service'] : ['wait', 'Connecting to the network'];
+  $('onState').dataset.state = look; $('onState').lastElementChild.textContent = words;
+}
+const FAILS = {
+  refused: ['The check did not go through', 'The network did not accept the check, so this phone has no number yet. Try the check again, or use the phone without a number for now.'],
+  error: ['The check did not finish', 'Something stopped the check part way. Try it again, or use the phone without a number for now.'],
+  load: ['The check could not load', 'This page could not reach Cloudflare, which runs the check. Check the connection and try again, or use the phone without a number for now.'],
+  unsupported: ['The check does not work in this browser', 'Another browser can get a number. This phone works here without one: it just cannot text other phones.'],
+};
+function onFail(why) {
+  report('person check: ' + why);
+  ON.held = null;
+  dropWidget();
+  $('onFailTitle').textContent = FAILS[why][0]; $('onFailWhy').textContent = FAILS[why][1];
+  $('onAgain').hidden = why === 'unsupported';
+  onShow('fail');
+  $('onFailTitle').focus({ preventScroll: true });
+}
+function putOff() {
+  report('the person check is put off');
+  ON.later = true; ON.held = null;
+  if (ON.ask) { const a = ON.ask; ON.ask = null; a.rej(later()); }
+  else if (link && A.cell === 'offline') link.reconnect();       // a refused check: the link stops now, not at its next try
+  onHide();
+}
+$('onLater').addEventListener('click', putOff);
+$('onSkip').addEventListener('click', putOff);
+$('onAgain').addEventListener('click', () => { ON.later = false; onCheck(ON.sitekey); });
+$('onGo').addEventListener('click', onHide);
+$('getNumber').addEventListener('click', () => { ON.later = false; sheet(false); onCheck(''); });
+A.personCheck = () => ON;                  // the sheet's state, for tests
 
 // The first time, say how the phone opens (and let the face move a little, once).
 function hint() {
@@ -724,6 +875,8 @@ async function start(p) {
     // No modem stand-in: no link to a network (it would give a number the phone cannot use). The profile's PEER is the hook:
     // with a stand-in that carries texts (the worker's _cell() finds its cell network) the phone is linked like the others.
     if (!p.peer) { link = null; cellState({ state: 'none', number: '' }); noNet = true; }
+    // No ticket of an earlier join that is still good: the person check comes over the stage while the phone loads.
+    else if (link && SITEKEY) link.ready.then(() => { const t = link.ticket(); if (!(t && t.valid) && !ON.step && !A.error) onCheck(''); }, () => {});
     const elf = await firmware(p);
     const flash = await flashState();
     if (!A.ready) { status('Loading the simulator'); progress(UNPACKED, true); await new Promise(r => { readyWait = r; }); }
@@ -886,20 +1039,22 @@ function show3d(on) {
     // after the 3D phone has come in over a 2D one that stood in for it, the 2D one goes
     if (v3.layer.classList.contains('fade')) setTimeout(() => { if (three) stage.classList.add('three'); }, 240);
     else stage.classList.add('three');
-    if (veil.parentNode !== stage) rig.after(veil);
+    // hidden until fitVeil() has put it on the 3D screen: it would stand at the stage's corner until then
+    if (veil.parentNode !== stage) { veil.style.visibility = 'hidden'; rig.after(veil); }
   } else {
     stage.classList.remove('three');
     $('ruler').style.visibility = '';
     if (veil.parentNode !== glass) { glass.append(veil); Object.assign(veil.style, { transform: '', width: '', height: '', padding: '', visibility: '' }); }
   }
   if (S) { place(); screenSize(); }
+  fitVeil();
 }
 // The words over the screen (#veil) on the 3D screen: its box mapped onto the four corners the screen has on the display
 // (a projective transform, so it lies on the screen when the lid leans or the phone is turned); not shown from behind.
 function fitVeil() {
   if (!three || !v3 || veil.classList.contains('gone')) return;
   const q = v3.screenQuad();
-  if (!q) return;
+  if (!q) { veil.style.visibility = 'hidden'; return; }
   const w = S.glass[2] * L.k, h = S.glass[3] * L.k;
   Object.assign(veil.style, { width: w + 'px', height: h + 'px', padding: 0.1 * w + 'px', visibility: q.facing ? '' : 'hidden', transform: quadMatrix(q.pts, w, h) });
 }
@@ -988,7 +1143,9 @@ $('freshYes').addEventListener('click', async () => {
 $('again').addEventListener('click', () => location.reload());
 $('log').addEventListener('toggle', () => { $('console').textContent = lines.join('\n'); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && A.running) worker.postMessage({ t: 'state', why: 'hidden' }); });
-addEventListener('resize', () => { if (S && !L.moving) layout('resize'); if (!S) shelf(); });
+// the shelf: measured again only when the width changes (a phone's address bar coming and going changes the height alone)
+let shelfW = 0;
+addEventListener('resize', () => { if (S && !L.moving) layout('resize'); if (!S && innerWidth !== shelfW) shelf(); });
 if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (S && !L.moving) layout('visual viewport'); });
 addEventListener('orientationchange', () => setTimeout(() => { if (S && !L.moving) layout('turned'); }, 350));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (S) place(); });
@@ -997,40 +1154,81 @@ addEventListener('error', e => report('page error: ' + e.message));
 addEventListener('unhandledrejection', e => report('page rejection: ' + (e.reason && e.reason.message || e.reason)));
 
 // ---- the shelf: the phones, drawn closed, at one scale ----
+// Each phone is the button that switches it on, drawn closed at one scale (true size where it fits), its colours under
+// it. A phone whose colour was never chosen here shows another colour than the one before it, so the shelf shows the range;
+// it starts in the colour it was shown in. A phone whose closed picture has its screen in it shows Myna's standby there
+// (icons/screen.png), lit a moment after the page comes.
 function shelf() {
   const box = $('phones'), picks = [...box.querySelectorAll('.pick')];
   if (!picks.length) return;
-  const wide = picks.reduce((s, b) => s + b.skinW, 0), tall = Math.max(...picks.map(b => b.skinH));
-  const roomW = box.clientWidth - (picks.length - 1) * 28 - 16, roomH = Math.max(220, innerHeight * 0.52);
-  const part = Math.min(1, roomW / (wide * pxmm()), roomH / (tall * pxmm()));
-  const shown = part >= 0.995 ? 1 : part >= 0.5 ? 0.5 : part;
-  for (const b of picks) Object.assign(b.querySelector('.pic').style, { width: b.skinW * pxmm() * shown + 'px', height: b.skinH * pxmm() * shown + 'px' });
-  $('shelfNote').textContent = (shown === 1 ? 'Drawn here at true size.' : shown === 0.5 ? 'Drawn here at half size. In the hand they are at true size.' : 'In the hand they are drawn at true size.') +
-    ' What a phone stores is kept in this browser.';
+  shelfW = innerWidth;
+  const wide = matchMedia('(min-width: 900px)').matches, gap = parseFloat(getComputedStyle(box).columnGap) || 0;
+  const wsum = picks.reduce((s, b) => s + b.skinW, 0), tall = Math.max(...picks.map(b => b.skinH));
+  const roomW = box.clientWidth - (picks.length - 1) * gap - 16, roomH = wide ? Math.max(280, innerHeight * 0.44) : Math.max(220, innerHeight * 0.42);
+  const part = Math.min(1, roomW / (wsum * pxmm()), roomH / (tall * pxmm()));
+  for (const b of picks) {
+    const w = b.skinW * pxmm() * part, h = b.skinH * pxmm() * part;
+    Object.assign(b.querySelector('.pic').style, { width: w + 'px', height: h + 'px' });
+  }
+  $('shelfNote').textContent = part >= 0.995 ? 'The phones are drawn at their true size.' : '';
 }
-async function card(p) {
-  const s = await skinOf(p), saved = await get(`state:${p.name}:${p.etag}`);
+async function card(p, i) {
+  const s = await skinOf(p), saved = await get(`state:${p.name}:${p.etag}`), ids = (s.skin.variants || []).map(v => v.id);
+  if (ids.length > 1 && pref.get('variant.' + p.name, '') === '') s.variant = ids[(i * (ids.length - 1)) % ids.length];
+  const box = document.createElement('div');
+  box.className = 'phone';
   const b = document.createElement('button');
   b.className = 'pick'; b.dataset.name = p.name;
   b.skinW = s.W / s.upm; b.skinH = s.Hc / s.upm;       // millimetres of the closed picture
   const pic = document.createElement('span'), img = document.createElement('img');
   pic.className = 'pic'; img.alt = ''; img.src = picture(s, s.closedImage); pic.append(img);
+  const g = (s.skin.views.find(v => v.image === s.closedImage) || {}).glass;
+  if (g && g[2] > 20) {
+    const lit = Object.assign(document.createElement('img'), { alt: '', src: 'icons/screen.png', className: 'lit' });
+    Object.assign(lit.style, { left: g[0] / s.W * 100 + '%', top: g[1] / s.Hc * 100 + '%', width: g[2] / s.W * 100 + '%', height: g[3] / s.Hc * 100 + '%' });
+    pic.append(lit);
+  }
   const t = document.createElement('b'); t.textContent = p.title;
-  const mm = document.createElement('span'); mm.className = 'mm'; mm.textContent = s.mm ? `${s.mm[1]} × ${s.mm[0]} mm` : '';
-  const k = document.createElement('span'); k.className = 'kept';
-  k.textContent = `Open-source software, ${Math.max(1, Math.round(p.size / 1024))} kB`;
-  const l = document.createElement('span'); l.className = 'last';
-  l.textContent = saved ? 'Last held ' + new Date(saved.when).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
-  b.append(pic, t, mm, k, l);
-  b.addEventListener('click', () => start(p));
-  return b;
+  const mm = document.createElement('span'); mm.className = 'mm';
+  mm.textContent = (s.hinge ? 'Flips open' : s.sl ? 'Slides open' : '') + (s.mm ? `${s.hinge || s.sl ? ', ' : ''}${s.mm[1]} × ${s.mm[0]} mm` : '');
+  b.append(pic, t, mm);
+  b.addEventListener('click', () => { if (ids.length > 1) pref.set('variant.' + p.name, s.variant); start(p); });
+  box.append(b);
+  const vs = s.skin.variants || [];
+  if (vs.length > 1) {
+    const row = document.createElement('div');
+    row.className = 'tones'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Colour of ' + p.title);
+    const mark = () => { for (const c of row.children) c.setAttribute('aria-pressed', String(c.dataset.variant === s.variant)); };
+    row.append(...vs.map(v => {
+      const c = document.createElement('button');
+      c.dataset.variant = v.id; c.title = v.label || v.id; c.setAttribute('aria-label', v.label || v.id); c.style.setProperty('--tone', v.swatch || '#888');
+      c.addEventListener('click', () => { s.variant = v.id; pref.set('variant.' + p.name, v.id); img.src = picture(s, s.closedImage); mark(); });
+      return c;
+    }));
+    mark();
+    box.append(row);
+  }
+  if (saved) {
+    const l = document.createElement('span'); l.className = 'last';
+    l.textContent = 'Last held ' + new Date(saved.when).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    box.append(l);
+  }
+  return box;
 }
 
 (async () => {
-  // The page's settings from its server: {"relay": "wss://..."} names the relay ("" or no file: none, loopback only).
-  if (!RELAY) try { const c = await (await fetch('config.json', { cache: 'no-store' })).json(); RELAY = typeof c.relay === 'string' ? c.relay : ''; } catch (e) { /* no relay */ }
+  // The page's settings from its server: {"relay": "wss://...", "turnstile": SITEKEY} names the relay ("" or no file: none,
+  // loopback only) and the site key of its person check ("": none asked for before the relay asks).
+  try {
+    const c = await (await fetch('config.json', { cache: 'no-store' })).json();
+    if (!RELAY) RELAY = typeof c.relay === 'string' ? c.relay : '';
+    SITEKEY = typeof c.turnstile === 'string' && RELAY === c.relay ? c.turnstile : '';
+  } catch (e) { /* no relay */ }
   netChoice();
   newWorker();
+  document.documentElement.dataset.relay = net === 'relay' ? 'on' : 'off';
+  // someone who has been on the network before from this browser: their number
+  if (link) link.ready.then(() => { if (link.ticket() && link.number && !S) $('yours').textContent = `Your number here is ${group(link.number)}.`; }, () => {});
   report(`page open: ${navigator.userAgent}; memory ${navigator.deviceMemory || '?'} GB; secure ${isSecureContext}; view ${innerWidth}x${innerHeight} at ${devicePixelRatio}x; true size as ${EST.what} (${pxmm().toFixed(2)} px/mm); network ${net}; ${standalone ? 'home-screen app' : 'in the browser'}`);
   // How fast this browser runs plain JavaScript and a small WebAssembly loop (100 million additions each): tells a
   // browser without a compiler (very slow at both) from one that is slow only with the simulator's large functions.
@@ -1052,9 +1250,11 @@ async function card(p) {
   const want = new URLSearchParams(location.search).get('p'), p = A.phones.find(x => x.name === want);
   if (p) return start(p);
   const cards = [];
-  for (const q of A.phones) try { cards.push(await card(q)); } catch (e) { report(`no card for ${q.name}: ${e.message || e}`); }
+  for (const q of A.phones) try { cards.push(await card(q, cards.length)); } catch (e) { report(`no card for ${q.name}: ${e.message || e}`); }
   $('phones').replaceChildren(...cards);
   $('phones').removeAttribute('aria-busy');
   if (!cards.length) { const m = document.createElement('p'); m.textContent = 'This server has no phone to give.'; $('phones').append(m); }
+  $('way').hidden = !cards.length;
   shelf();
+  requestAnimationFrame(() => $('phones').classList.add('lit'));
 })();

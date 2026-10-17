@@ -13,8 +13,17 @@
 //                            'connecting'
 //                            'online'      joined: texts go and come
 //                            'offline'     no connection; it tries again by itself (reason: an error code or 'lost')
-//                            'stopped'     it will not try again (reason: update, replaced, banned, bad_join, origin, no_relay)
-//   turnstile(sitekey)     -> Promise of a Turnstile token; called only when the relay asks for the person check
+//                            'stopped'     it will not try again (reason: update, replaced, banned, bad_join, origin, no_relay,
+//                                          later: the page put the person check off; link.reconnect() goes on)
+//   turnstile(sitekey)     -> Promise of a Turnstile token; called only when the relay asks for the person check. An error
+//                          with `later: true` puts the check off: the link stops ('stopped', 'later') until reconnect()
+//   link.ticket()          after link.ready: null, or { valid, exp } of the ticket kept from the last join (12 hours): while
+//                          it is valid the relay asks for no person check
+//   link.reconnect()       try now: after 'later', or after a failed check once the page has a new token (else the link
+//                          waits 30 s or more)
+//   welcome(number)        -> the text of a welcome (plain GSM letters, one part), or none (the default): after the first join
+//                          of this browser's number the phone gets it once, from welcomeFrom ('3246', the relay's echo
+//                          service), made here (the relay sends nothing); kept as given in the store ('welcomed:NUMBER')
 //   other options          encrypt (true), requireEncryption (true), workerAcks (true), signal (true), store, WebSocket (for tests)
 // The phone's signal: the worker gets {t:'cell_state', up: true|false}: up while the link is 'online', down when it has
 // not been online for 4 s (and at once when the phone starts without a link).
@@ -26,7 +35,7 @@
 
 globalThis.cellRelay = (() => {
   const VERSION = 1, EPOCH = 1224504000, DEFAULT_SC = '81550501f0';
-  const FATAL = new Set(['update', 'replaced', 'banned', 'bad_join', 'bad_number', 'origin']);
+  const FATAL = new Set(['update', 'replaced', 'banned', 'bad_join', 'bad_number', 'origin', 'later']);
   const SLOW = new Set(['off', 'paused', 'full', 'flood', 'turnstile', 'slow_join']);      // try again, but not soon
   const utf8 = s => new TextEncoder().encode(s);
   const hex = u => Array.from(u, b => b.toString(16).padStart(2, '0')).join('');
@@ -122,6 +131,14 @@ globalThis.cellRelay = (() => {
     const t = new Date(seconds * 1000);
     return Uint8Array.from([t.getUTCFullYear() % 100, t.getUTCMonth() + 1, t.getUTCDate(), t.getUTCHours(), t.getUTCMinutes(), t.getUTCSeconds(), 0], v => (v % 10) << 4 | Math.floor(v / 10));
   }
+  /** An SMS-DELIVER of one part from the number `from` at `seconds`: a text in the GSM 7-bit alphabet, of the letters, digits,
+   *  space and plain signs it shares with ASCII. */
+  function textDeliver(from, text, seconds) {
+    if (!/^[A-Za-z0-9 !"#%&'()*+,\-./:;<=>?]{1,160}$/.test(text)) throw new Error('not a text of one part in plain GSM letters');
+    const ud = new Uint8Array(Math.ceil(text.length * 7 / 8));
+    for (let i = 0; i < text.length; i++) for (let b = 0; b < 7; b++) if (text.charCodeAt(i) >> b & 1) { const bit = i * 7 + b; ud[bit >> 3] |= 1 << (bit & 7); }
+    return cat([0x04], addressField(from), [0x00, 0x00], timeStamp(seconds), [text.length], ud);
+  }
   /** The SMS-DELIVER that the receiver of the SMS-SUBMIT `t` gets from `origin` (an address field) at `seconds`. */
   function submitToDeliver(t, seconds, origin) {
     if (t.length < 7 || (t[0] & 3) !== 1) throw new Error('not an SMS-SUBMIT');
@@ -153,7 +170,8 @@ globalThis.cellRelay = (() => {
 
   // ---- the link ----
   function link(worker, emuSeconds, report, options) {
-    const o = Object.assign({ url: globalThis.CELL_RELAY_URL || '', encrypt: true, requireEncryption: true, workerAcks: true, signal: true, onState: null, turnstile: null, store: null, WebSocket: globalThis.WebSocket }, options || {});
+    const o = Object.assign({ url: globalThis.CELL_RELAY_URL || '', encrypt: true, requireEncryption: true, workerAcks: true, signal: true, onState: null, turnstile: null,
+      welcome: null, welcomeFrom: '3246', store: null, WebSocket: globalThis.WebSocket }, options || {});
     const say = s => { try { report('text messages: ' + s); } catch (e) { /* the page's matter */ } };
     const clock = () => EPOCH + Math.floor(emuSeconds());
     let keys = null, store = o.store, ws = null, state = 'starting', reason = '', text = '', wanted = false, tries = 0, retry = null, pinger = null, pongWait = null;
@@ -167,6 +185,12 @@ globalThis.cellRelay = (() => {
       get services() { return [...services.values()]; },
       onMessage, close() { wanted = false; stop('idle', ''); },
       format: n => n.replace(/^(\d{4})(\d{4})(\d{4})$/, '$1 $2 $3'),
+      ticket: () => ticket ? { valid: ticket.exp > Math.floor(Date.now() / 1000) + 60, exp: ticket.exp } : null,
+      reconnect() {
+        if (state === 'stopped' && reason !== 'later') return;
+        if (state === 'stopped') { state = self.state = 'offline'; reason = ''; }
+        tries = 0; connect();
+      },
     };
 
     // The phone's signal follows the link: {t:'cell_state', up} goes to the worker when the link comes up (at once) and when
@@ -281,7 +305,8 @@ globalThis.cellRelay = (() => {
       if (ticket && ticket.exp > now + 60) out.ticket = ticket.ticket;
       else if (m.sitekey) {
         if (!o.turnstile) { say('the relay asks for the person check and the page has none'); sock.why = 'turnstile'; return sock.close(); }
-        try { out.ts = await o.turnstile(m.sitekey); } catch (e) { say('the person check failed: ' + (e && e.message || e)); sock.why = 'turnstile'; return sock.close(); }
+        try { out.ts = await o.turnstile(m.sitekey); }
+        catch (e) { say(e && e.later ? 'the person check is put off' : 'the person check failed: ' + (e && e.message || e)); sock.why = e && e.later ? 'later' : 'turnstile'; return sock.close(); }
       }
       sendJson(sock, out);
     }
@@ -299,6 +324,31 @@ globalThis.cellRelay = (() => {
       }, (m.ping || 45) * 1000);
       set('online', '');
       say(`on the network as ${keys.number}`);
+      welcome();
+    }
+
+    // ---- the welcome: once for this browser's number, after its first join ----
+    // The phone takes a text only once it is registered and has asked for them (the modem stand-in refuses it before): it is
+    // offered again every 5 s for a minute, and kept as given only when the phone took it; else at the next join.
+    let welcoming = false;
+    async function welcome() {
+      if (!o.welcome || welcoming) return;
+      welcoming = true;
+      const flag = 'welcomed:' + keys.number;
+      try {
+        if (await store.get(flag)) return;
+        const text = o.welcome(keys.number);
+        if (!text) return;
+        for (let i = 0; i < 12 && wanted; i++) {
+          await new Promise(r => setTimeout(r, i ? 5000 : 1500));
+          if (!wanted) break;
+          const tpdu = textDeliver(o.welcomeFrom, text, clock());
+          const took = await Promise.race([new Promise(r => handIn(tpdu, ok => r(ok))), new Promise(r => setTimeout(() => r(false), 45000))]);
+          if (took) { await store.put(flag, Date.now()); say('the welcome text: the phone took it'); return; }
+        }
+        say('the welcome text: the phone did not take it, again at the next join');
+      } catch (e) { say('no welcome text: ' + (e && e.message || e)); }
+      finally { welcoming = false; }
     }
 
     // ---- the phone sends ----
@@ -373,9 +423,17 @@ globalThis.cellRelay = (() => {
         tpdu = submitToDeliver(payload.subarray(1), clock(), addressField(m.from));
       } catch (e) { say(`a text was not understood (${e.message}): refused`); return answer(false, 95); }
       if (!wanted) return answer(false, 27);
+      handIn(tpdu, (ok, cause, late) => {
+        if (o.workerAcks) say(late ? 'a text arrived: the phone did not answer in time' : ok ? 'a text arrived: the phone took it' : `a text arrived: the phone refused it (cause ${cause})`);
+        answer(ok, cause);
+      });
+    }
+
+    /** An SMS-DELIVER to the phone; done(ok, cause, late) with its answer (late: none came in time, cause 41). */
+    function handIn(tpdu, done) {
       const k = nextK++;
-      if (!o.workerAcks) { worker.postMessage({ t: 'cell_in', sc: lastSc, tpdu: hex(tpdu), k }); return answer(true, 0); }
-      waits.set(k, { answer: (ok, cause) => { say(ok ? 'a text arrived: the phone took it' : `a text arrived: the phone refused it (cause ${cause})`); answer(ok, cause); }, timer: setTimeout(() => { waits.delete(k); say('a text arrived: the phone did not answer in time'); answer(false, 41); }, 40000) });
+      if (!o.workerAcks) { worker.postMessage({ t: 'cell_in', sc: lastSc, tpdu: hex(tpdu), k }); return done(true, 0); }
+      waits.set(k, { answer: done, timer: setTimeout(() => { waits.delete(k); done(false, 41, true); }, 40000) });
       worker.postMessage({ t: 'cell_in', sc: lastSc, tpdu: hex(tpdu), k });      // after the wait is set: the answer may come at once
     }
 
@@ -395,7 +453,7 @@ globalThis.cellRelay = (() => {
     return self;
   }
 
-  return { VERSION, link, numberOf, joinText, encText, makeKeys, verify, addressField, destination, submitToDeliver, timeStamp, seal, unseal, memoryStore, hex, unhex, b64, unb64, cat };
+  return { VERSION, link, numberOf, joinText, encText, makeKeys, verify, addressField, destination, submitToDeliver, textDeliver, timeStamp, seal, unseal, memoryStore, hex, unhex, b64, unb64, cat };
 })();
 
 function cellLink(worker, emuSeconds, report, options) { return cellRelay.link(worker, emuSeconds, report, options); }

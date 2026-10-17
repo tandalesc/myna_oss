@@ -20,13 +20,15 @@ let passed = 0, failed = 0;
 export const check = (ok, what) => { console.log((ok ? 'PASS ' : 'FAIL ') + what); ok ? passed++ : failed++; return ok; };
 export const summary = () => { console.log(`${passed} passed, ${failed} failed`); return failed ? 1 : 0; };
 
-/** The page's server and a Chrome. relay: the relay's address for the page, or ''. Returns { base, cdp, stop }. */
-export async function start({ relay = '' } = {}) {
+/** The page's server and a Chrome. relay: the relay's address for the page, or ''; turnstile: the site key of its person
+ *  check, or ''. Returns { base, cdp, stop }. */
+export async function start({ relay = '', turnstile = '' } = {}) {
   const work = mkdtempSync(join(tmpdir(), 'myna-page-'));
   const page = await freePort(), cdp = await freePort(), procs = [];
   const args = ['-I', join(WEB, 'serve.py'), '--port', String(page)];
   if (process.env.MYNA_PYODIDE) args.push('--pyodide', process.env.MYNA_PYODIDE);
   if (relay) args.push('--relay', relay);
+  if (turnstile) args.push('--turnstile', turnstile);
   const server = spawn(process.env.PYTHON || 'python3', args, { stdio: ['ignore', 'pipe', 'inherit'] });
   procs.push(server);
   let said = '';

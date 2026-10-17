@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- index.html: pick a phone, then hold it: the drawn phone at its true size, its keys under the finger, a swipe slides it open.
+<!-- index.html: pick a phone, get a number, then hold it: the drawn phone at its true size, its keys under the finger, a swipe slides it open.
      Myna's phone page (myna/web/README.md). The page logic is app.js, the look is app.css; nothing is inline (strict
      Content-Security-Policy). SPDX-License-Identifier: MIT -->
 <html lang="en">
@@ -17,16 +17,27 @@
 <meta name="format-detection" content="telephone=no">
 <title>Myna</title>
 <link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="preload" href="fonts/Nunito-ExtraBold.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="app.css">
 </head>
 <body data-screen="picker">
 
 <main id="picker">
-  <header>
-    <h1>Pick up a phone</h1>
-    <p>A slider phone that runs inside this page, with Myna, open-source phone software. Press the keys. Swipe the screen up to slide it open. Text other phones, or yourself.</p>
-  </header>
-  <div id="phones" class="shelf" aria-busy="true"></div>
+  <div class="intro">
+    <h1>Pick up a phone.</h1>
+    <p class="lede">A keypad phone that runs inside this page.<span class="withRelay"> It gets a number of its own, so you can text anyone else who has picked one up.</span><span class="noRelay"> Press its keys, slide it open, write a text: it comes back to you.</span></p>
+  </div>
+  <div class="hero">
+    <div id="phones" class="shelf" aria-busy="true"></div>
+    <p class="way" id="way" hidden><span class="touch">Tap a phone to switch it on.</span><span class="mouse">Click a phone to switch it on.</span></p>
+    <p class="withRelay" id="yours"></p>
+  </div>
+  <ul class="facts">
+    <li class="withRelay"><b>A number of its own</b>Twelve digits, made in this browser. Anyone else here can text it, and you can text them.</li>
+    <li class="noRelay"><b>Texts come back</b>This page has no network to other phones: what you send comes straight back to you.</li>
+    <li class="withRelay"><b>Sealed phone to phone</b>Texts are encrypted end to end. The relay passes them on and keeps none of them.</li>
+    <li><b>Open source</b>The phones' software, this page and the relay are <a href="https://github.com/tandalesc/myna_oss">on GitHub</a>, under the MIT licence.</li>
+  </ul>
   <p class="note" id="shelfNote"></p>
 </main>
 
@@ -70,6 +81,32 @@
   <p id="toast" role="status" hidden></p>
 </section>
 
+<!-- Getting a number (app.js, "getting a number"): the relay's person check (Turnstile), then the number, over the stage
+     while the phone loads behind it -->
+<div id="onScrim" hidden></div>
+<aside id="onboard" role="dialog" aria-modal="true" aria-labelledby="onTitle" hidden>
+  <section id="onCheck">
+    <h2 id="onTitle" tabindex="-1">Get your number</h2>
+    <p id="onWhy">These phones text each other over a small network. A quick check keeps robots off it.</p>
+    <div id="onWidget"></div>
+    <p class="fine" id="onWait" role="status"></p>
+    <button id="onLater" class="act quiet">Not now</button>
+  </section>
+  <section id="onNumber" hidden>
+    <h2 id="onNumTitle" tabindex="-1">Your number</h2>
+    <p class="number" id="onDigits" aria-live="polite"></p>
+    <p class="state" id="onState" data-state="wait"><i aria-hidden="true"></i><span></span></p>
+    <p id="onTry">Text 3246 from your phone and a text comes back. Anyone with a number here can text you.</p>
+    <button id="onGo" class="act">Go to your phone</button>
+  </section>
+  <section id="onFail" hidden>
+    <h2 id="onFailTitle" tabindex="-1">The check did not go through</h2>
+    <p id="onFailWhy"></p>
+    <button id="onAgain" class="act">Try again</button>
+    <button id="onSkip" class="act quiet">Not now</button>
+  </section>
+  <p class="fine" id="onPrivate">Your number is made from a key kept in this browser. Texts are encrypted from phone to phone, and the relay keeps none of them.</p>
+</aside>
 <div id="scrim" hidden></div>
 <aside id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
   <div class="grab" aria-hidden="true"></div>
@@ -86,6 +123,7 @@
     <p class="read" id="numberRow">This phone's number is <b id="number">…</b> <button id="copyNumber" class="link">Copy</button></p>
     <p class="fine" id="netState"></p>
     <p class="fine" id="netWho"></p>
+    <button id="getNumber" class="act" hidden>Get a number</button>
     <div id="netSeg" hidden>
       <h3 class="sub">Network</h3>
       <div class="seg" role="group" aria-label="Text-message network">

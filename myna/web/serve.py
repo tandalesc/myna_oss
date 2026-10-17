@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""serve.py [--port N] [--host ADDR] [--pyodide DIR] [--relay URL] [--log] [--cert PEM] [--write DIR]: Myna's phone page.
+"""serve.py [--port N] [--host ADDR] [--pyodide DIR] [--relay URL] [--turnstile SITEKEY] [--log] [--cert PEM] [--write DIR]: Myna's phone page.
 
 Serves this folder's page and everything a phone in it needs, from the repository it is in. Standard library only.
 
-  /, /app.js, /app.css, /phone_worker.js, /manifest.webmanifest, /icons/icon-N.png     this folder
+  /, /app.js, /app.css, /phone_worker.js, /manifest.webmanifest, /icons/icon-N.png, /icons/screen.png     this folder
+  /fonts/Nunito-ExtraBold.ttf, /fonts/Nunito-Light.ttf     the phones' own font (OFL), from myna/assets/fonts, for the page's words
   /cell.js            the relay's client, myna/relay/client/cell.js
-  /config.json        {"relay": URL}: the first --relay ("" without one: the page uses the loopback network)
+  /config.json        {"relay": URL, "turnstile": SITEKEY}: the first --relay ("" without one: the page uses the loopback
+                      network) and the site key of the relay's person check (--turnstile; "": the page asks for none first)
   /devices.json       the phones with a firmware of our own (a profile with BOOT_ELF) whose ELF file is built
   /phone_src.json     the Python source a phone imports, one archive {"files": {path: text}}: the files of platform.txt
                       and the .py files of those device folders, made once when the server starts
@@ -27,14 +29,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 NATIVE = os.path.join(ROOT, 'native')
 RELAY_CLIENT = os.path.join(ROOT, 'myna', 'relay', 'client', 'cell.js')
+FONTS = os.path.join(ROOT, 'myna', 'assets', 'fonts')
 PYODIDE = {'pyodide.js': 'text/javascript; charset=utf-8', 'pyodide.asm.mjs': 'text/javascript; charset=utf-8',
            'pyodide.asm.wasm': 'application/wasm', 'python_stdlib.zip': 'application/zip', 'pyodide-lock.json': 'application/json'}
 THREE = 'three-0.186.1'                         # the vendored three.js (native/core/web/vendor/)
-CSP = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'%s; style-src 'self'; "
-       "img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+CSP = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'%s; worker-src 'self'; connect-src 'self'%s; style-src 'self'; "
+       "font-src 'self'; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'%s")
+# the relay's person check (Turnstile): Cloudflare's script and the frame it draws, allowed only when there is a relay
+TURNSTILE = 'https://challenges.cloudflare.com'
 JS, HTML, CSS = 'text/javascript; charset=utf-8', 'text/html; charset=utf-8', 'text/css; charset=utf-8'
 SKIN_FILE = re.compile(r'^[a-z0-9_.-]+\.(svg|json)$')
-ICON_FILE = re.compile(r'^icon-(180|192|512)\.png$')
+ICON_FILE = re.compile(r'^(icon-(180|192|512)|screen)\.png$')
 MAX_FILE = 1 << 20
 
 
@@ -119,6 +124,8 @@ def main():
                     help='a folder with an unpacked Pyodide release (pyodide.js, pyodide.asm.wasm, ...); default: MYNA_PYODIDE')
     ap.add_argument('--relay', action='append', default=[], metavar='URL',
                     help='the text-message relay the page uses (ws:// or wss://); repeat to allow more in the page\'s policy')
+    ap.add_argument('--turnstile', default='', metavar='SITEKEY',
+                    help='the site key of the relay\'s person check (Turnstile): the page asks for the check before the first join')
     ap.add_argument('--log', action='store_true', help='print the lines a page sends with ?log=1')
     ap.add_argument('--cert', metavar='PEM', help='serve https with this certificate file (key included)')
     ap.add_argument('--write', metavar='DIR', help='do not serve: write the site into DIR (an empty folder) for a static host')
@@ -135,8 +142,9 @@ def main():
                         'peer': getattr(p, 'PEER', None) or '', 'size': os.path.getsize(p.BOOT_ELF),
                         'etag': 'blank-' + (getattr(p, 'NAND_CHIP', None) or 'default')})
     packed = json.dumps({'files': archive(sorted(own))}).encode()
-    config = json.dumps({'relay': a.relay[0] if a.relay else ''}).encode()
-    csp = CSP % ''.join(' ' + u for u in a.relay)
+    config = json.dumps({'relay': a.relay[0] if a.relay else '', 'turnstile': a.turnstile if a.relay else ''}).encode()
+    ts = bool(a.relay)
+    csp = CSP % (' ' + TURNSTILE if ts else '', ''.join(' ' + u for u in a.relay), '; frame-src ' + TURNSTILE if ts else '')
     wasm = os.path.join(os.environ.get('DBCORE_OUT') or os.path.join(NATIVE, 'core', 'build'), 'dbcore.wasm')
     static = {
         '/': (os.path.join(HERE, 'index.html'), HTML), '/index.html': (os.path.join(HERE, 'index.html'), HTML),
@@ -147,6 +155,8 @@ def main():
         '/phone3d.js': (os.path.join(NATIVE, 'core', 'web', 'phone3d.js'), JS),
         '/phone3d.css': (os.path.join(NATIVE, 'core', 'web', 'phone3d.css'), CSS),
     }
+    for name in ('Nunito-ExtraBold.ttf', 'Nunito-Light.ttf'):
+        static['/fonts/' + name] = (os.path.join(FONTS, name), 'font/ttf')
     for name in ('three.module.js', 'three.core.js'):         # three.js, loaded only when a skin has body3d
         static['/vendor/%s/%s' % (THREE, name)] = (os.path.join(NATIVE, 'core', 'web', 'vendor', THREE, name), JS)
     if a.pyodide:
